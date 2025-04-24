@@ -20,19 +20,22 @@
     <None Remove="Resources\Fonts\exocet-blizzard-medium.ttf" />
     <None Remove="Resources\Icons\icon.ico" />
     <None Remove="Resources\Icons\icon.png" />
-    <None Remove="Resources\Images\bg.jpg" />
-    <None Remove="Resources\Images\bg1.png" />
+    <None Remove="Resources\Images\bg1.jpg" />
+    <None Remove="Resources\Images\bg2.jpg" />
     <None Remove="Resources\Images\bg_plain.jpg" />
     <None Remove="Resources\Images\btn_beta.jpg" />
     <None Remove="Resources\Images\btn_live.jpg" />
     <None Remove="Resources\Images\btn_more.jpg" />
     <None Remove="Resources\Images\btn_more_pressed.jpg" />
+    <None Remove="Resources\Images\btn_no_updates.jpg" />
+    <None Remove="Resources\Images\btn_no_updates2.jpg" />
     <None Remove="Resources\Images\btn_switch.jpg" />
     <None Remove="Resources\Images\btn_switch_pressed.jpg" />
     <None Remove="Resources\Images\checkbox_checked.png" />
     <None Remove="Resources\Images\checkbox_unchecked.png" />
     <None Remove="Resources\Images\close.jpg" />
     <None Remove="Resources\Images\close_pressed.jpg" />
+    <None Remove="Resources\Images\custom_notif.jpg" />
     <None Remove="Resources\Images\donate.jpg" />
     <None Remove="Resources\Images\donate_pressed.jpg" />
     <None Remove="Resources\Images\empty_button.png" />
@@ -48,6 +51,10 @@
     <None Remove="Resources\Images\thin_next.jpg" />
     <None Remove="Resources\Images\thin_prev.jpg" />
     <None Remove="Resources\Images\updating_disabled.jpg" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Resources\Images\custom_notif.jpg" />
   </ItemGroup>
 
   <ItemGroup>
@@ -71,13 +78,15 @@
     <Resource Include="Resources\Fonts\exocet-blizzard-medium.ttf" />
     <Resource Include="Resources\Icons\icon.ico" />
     <Resource Include="Resources\Icons\icon.png" />
-    <Resource Include="Resources\Images\bg.jpg" />
-    <Resource Include="Resources\Images\bg1.png" />
+    <Resource Include="Resources\Images\bg1.jpg" />
+    <Resource Include="Resources\Images\bg2.jpg" />
     <Resource Include="Resources\Images\bg_plain.jpg" />
     <Resource Include="Resources\Images\btn_beta.jpg" />
     <Resource Include="Resources\Images\btn_live.jpg" />
     <Resource Include="Resources\Images\btn_more.jpg" />
     <Resource Include="Resources\Images\btn_more_pressed.jpg" />
+    <Resource Include="Resources\Images\btn_no_updates.jpg" />
+    <Resource Include="Resources\Images\btn_no_updates2.jpg" />
     <Resource Include="Resources\Images\btn_switch.jpg" />
     <Resource Include="Resources\Images\btn_switch_pressed.jpg" />
     <Resource Include="Resources\Images\checkbox_checked.png" />

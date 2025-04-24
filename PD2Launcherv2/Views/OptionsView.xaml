@@ -37,7 +37,7 @@
                         </Button.ToolTip>
                     </Button>
                 </StackPanel>
-                
+
                 <GroupBox Header="Graphics" Margin="10,0,0,0" FontWeight="Bold" BorderThickness="0" 
                           FontFamily="{StaticResource BlizzMedium}" Foreground="{StaticResource GoldBrush}" 
                           FontSize="14">
@@ -67,7 +67,7 @@
                         <CheckBox x:Name="SkipToBNet" Content="Skip To BattleNet (-skiptobnet)" Style="{StaticResource CustomCheckBoxStyle}" 
                                   FontFamily="{StaticResource BlizzMedium}" Foreground="{StaticResource GoldBrush}" IsChecked="{Binding SkipToBnet, Mode=TwoWay}"
                                   FontSize="12" Margin="10,10,10,0"/>
-                        <CheckBox x:Name="DisableAutoUpdate" Content="Disable Automatic Updates" Style="{StaticResource CustomCheckBoxStyle}" 
+                        <CheckBox x:Name="DisableAutoUpdate" Content="Disable Updates" Style="{StaticResource CustomCheckBoxStyle}" 
                                   FontFamily="{StaticResource BlizzMedium}" Foreground="{StaticResource GoldBrush}" IsChecked="{Binding AutoUpdate, Mode=TwoWay}"
                                   FontSize="12" Margin="10,10,10,0"/>
                         <TextBlock Text="Checking this will stop your game from updating when you select the play button" FontSize="12" FontStyle="Italic" Margin="10,0,10,10" Foreground="{StaticResource GoldDarkerBrush}"/>
