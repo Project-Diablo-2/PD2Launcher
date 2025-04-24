@@ -9,7 +9,7 @@
     </WindowChrome.WindowChrome>
 
     <Grid>
-        <Image Source="pack://application:,,,/Resources/Images/bg.jpg" Stretch="Fill"
+        <Image Source="pack://application:,,,/Resources/Images/bg1.png" Stretch="Fill"
                MouseLeftButtonDown="BackgroundImage_MouseLeftButtonDown"/>
 
         <!--Logo in the center -->
@@ -82,7 +82,7 @@
                          FontFamily="{StaticResource BlizzMedium}"
                          FontSize="14"
                          Opacity=".8"
-                         Width="750"
+                         Width="700"
                          Height="240"
                          FocusVisualStyle="{x:Null}"
                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
@@ -166,14 +166,26 @@
                              Style="{StaticResource ImageFillProgressBarStyle}" Visibility="Collapsed"/>
             </Grid>
 
-            <local:CustomImageButton x:Name="OptionsButton" Width="270" Height="35" Margin="0,0,0,10"
-                                     NormalImageSource="pack://application:,,,/Resources/Images/options.jpg"
-                                     PressedImageSource="pack://application:,,,/Resources/Images/options_pressed.jpg"
-                                     Command="{Binding OpenOptionsCommand}"/>
-            <local:CustomImageButton x:Name="LootButton" Width="270" Height="28" Margin="0,-11,0,10"
-                                     NormalImageSource="pack://application:,,,/Resources/Images/loot.jpg"
-                                     PressedImageSource="pack://application:,,,/Resources/Images/loot_pressed.jpg"
-                                     Command="{Binding OpenLootCommand}"/>
+            <Grid HorizontalAlignment="Center" VerticalAlignment="Bottom" Height="65" Width="270">
+    <local:CustomImageButton x:Name="LootButton"
+                             Width="270" Height="28"
+                             VerticalAlignment="Bottom"
+                             Margin="0,-15,0,0"
+                             Panel.ZIndex="0"
+                             NormalImageSource="pack://application:,,,/Resources/Images/loot.jpg"
+                             PressedImageSource="pack://application:,,,/Resources/Images/loot_pressed.jpg"
+                             Command="{Binding OpenLootCommand}"/>
+    
+    <local:CustomImageButton x:Name="OptionsButton"
+                             Width="270" Height="35"
+                             VerticalAlignment="Top"
+                             Margin="0,3,0,0"
+                             Panel.ZIndex="1"
+                             NormalImageSource="pack://application:,,,/Resources/Images/options.jpg"
+                             PressedImageSource="pack://application:,,,/Resources/Images/options_pressed.jpg"
+                             Command="{Binding OpenOptionsCommand}"/>
+</Grid>
+
         </StackPanel>
 
         <!-- Bottom right buttons -->
