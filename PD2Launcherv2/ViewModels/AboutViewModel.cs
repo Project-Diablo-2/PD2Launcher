@@ -8,12 +8,18 @@ using PD2Launcherv2.Models;
 using ProjectDiablo2Launcherv2.Models;
 using System.Diagnostics;
 using System.Windows;
+using System.Windows.Input;
+using System.Windows.Threading;
 
 namespace PD2Launcherv2.ViewModels
 {
     public class AboutViewModel : ViewModelBase
     {
-        private bool _showCustomEnv;
+        private DispatcherTimer _holdTimer;
+        private DateTime _holdStartTime;
+        private const int RequiredHoldSeconds = 10;
+
+    private bool _showCustomEnv;
         public bool ShowCustomEnv
         {
             get => _showCustomEnv;
@@ -47,17 +53,19 @@ namespace PD2Launcherv2.ViewModels
         public AboutViewModel(ILocalStorage localStorage)
         {
             _localStorage = localStorage;
-            ToggleCustomEnvCommand = new RelayCommand(() =>
-            {
-                ShowCustomEnv = !ShowCustomEnv;
-                Debug.WriteLine($"ShowCustomEnv toggled: {ShowCustomEnv}");
-            });
+            //ToggleCustomEnvCommand = new RelayCommand(ToggleCustomEnv);
             ProdBucket = new RelayCommand(ProdBucketAssign);
             BetaBucket = new RelayCommand(BetaBucketAssign);
             CustomBucket = new RelayCommand(CustomBucketAssign);
 
             CloseCommand = new RelayCommand(CloseView);
         }
+
+        //private void ToggleCustomEnv()
+        //{
+        //    ShowCustomEnv = !ShowCustomEnv;
+        //    Debug.WriteLine($"ShowCustomEnv toggled: {ShowCustomEnv}");
+        //}
 
         public void ProdBucketAssign()
         {
@@ -96,7 +104,13 @@ namespace PD2Launcherv2.ViewModels
             Debug.WriteLine("\nstart SetCustomEnvironment");
             if (string.IsNullOrWhiteSpace(_customClientUrl))
             {
-                MessageBox.Show("Please enter both a Client URL and Environment Name.", "Invalid Input", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            if (!Uri.TryCreate(CustomClientUrl, UriKind.Absolute, out Uri validatedUri) ||
+        (validatedUri.Scheme != Uri.UriSchemeHttp && validatedUri.Scheme != Uri.UriSchemeHttps))
+            {
+                MessageBox.Show("The Data provided is not valid. Please contact dev team for clarification", "Invalid Entry", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
