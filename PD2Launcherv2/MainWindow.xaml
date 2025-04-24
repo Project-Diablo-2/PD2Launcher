@@ -9,7 +9,7 @@
     </WindowChrome.WindowChrome>
 
     <Grid>
-        <Image Source="pack://application:,,,/Resources/Images/bg.jpg" Stretch="Fill"
+        <Image Source="pack://application:,,,/Resources/Images/bg1.png" Stretch="Fill"
                MouseLeftButtonDown="BackgroundImage_MouseLeftButtonDown"/>
 
         <!--Logo in the center -->

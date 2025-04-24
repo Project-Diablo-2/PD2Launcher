@@ -21,6 +21,7 @@
     <None Remove="Resources\Icons\icon.ico" />
     <None Remove="Resources\Icons\icon.png" />
     <None Remove="Resources\Images\bg.jpg" />
+    <None Remove="Resources\Images\bg1.png" />
     <None Remove="Resources\Images\bg_plain.jpg" />
     <None Remove="Resources\Images\btn_beta.jpg" />
     <None Remove="Resources\Images\btn_live.jpg" />
@@ -71,6 +72,7 @@
     <Resource Include="Resources\Icons\icon.ico" />
     <Resource Include="Resources\Icons\icon.png" />
     <Resource Include="Resources\Images\bg.jpg" />
+    <Resource Include="Resources\Images\bg1.png" />
     <Resource Include="Resources\Images\bg_plain.jpg" />
     <Resource Include="Resources\Images\btn_beta.jpg" />
     <Resource Include="Resources\Images\btn_live.jpg" />
