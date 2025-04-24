@@ -35,6 +35,7 @@
     <None Remove="Resources\Images\checkbox_unchecked.png" />
     <None Remove="Resources\Images\close.jpg" />
     <None Remove="Resources\Images\close_pressed.jpg" />
+    <None Remove="Resources\Images\custom_notif.jpg" />
     <None Remove="Resources\Images\donate.jpg" />
     <None Remove="Resources\Images\donate_pressed.jpg" />
     <None Remove="Resources\Images\empty_button.png" />
@@ -50,6 +51,10 @@
     <None Remove="Resources\Images\thin_next.jpg" />
     <None Remove="Resources\Images\thin_prev.jpg" />
     <None Remove="Resources\Images\updating_disabled.jpg" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Resources\Images\custom_notif.jpg" />
   </ItemGroup>
 
   <ItemGroup>

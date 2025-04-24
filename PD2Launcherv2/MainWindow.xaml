@@ -217,6 +217,10 @@
                                      NormalImageSource="pack://application:,,,/Resources/Images/btn_switch.jpg"
                                      PressedImageSource="pack://application:,,,/Resources/Images/btn_switch_pressed.jpg"
                                      Command="{Binding OpenAboutCommand}"/>
+                    <Image 
+                        Width="50" Height="15" Margin="5" 
+                        Source="pack://application:,,,/Resources/Images/custom_notif.jpg"
+                        Visibility="{Binding CustomVisibility}"/>
                 </StackPanel>
 
                 <!-- Version -->
@@ -227,7 +231,7 @@
                    FontFamily="{StaticResource BlizzMedium}"/>
             </StackPanel>
         </Grid>
-        
+
         <!-- No Updates -->
         <Image x:Name="UpdatesNotification"
                Focusable="False"
