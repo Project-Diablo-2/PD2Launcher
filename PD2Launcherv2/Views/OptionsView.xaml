@@ -37,7 +37,7 @@
                         </Button.ToolTip>
                     </Button>
                 </StackPanel>
-                
+
                 <GroupBox Header="Graphics" Margin="10,0,0,0" FontWeight="Bold" BorderThickness="0" 
                           FontFamily="{StaticResource BlizzMedium}" Foreground="{StaticResource GoldBrush}" 
                           FontSize="14">

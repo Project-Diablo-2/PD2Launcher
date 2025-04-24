@@ -126,7 +126,7 @@
         <!-- Top right buttons-->
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="10">
             <local:CustomImageButton x:Name="MinimizeButton"
-                             Width="25" Height="25" Margin="0,10,5,0"
+                             Width="25" Height="25" Margin="0,10,-1,0"
                              NormalImageSource="pack://application:,,,/Resources/Images/minimize.jpg"
                              PressedImageSource="pack://application:,,,/Resources/Images/minimize_pressed.jpg"
                              Click="MinimizeButton_Click"/>
