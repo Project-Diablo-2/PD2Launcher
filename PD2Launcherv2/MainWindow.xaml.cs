@@ -151,7 +151,7 @@ namespace PD2Launcherv2
             //TEST
 #if DEBUG
 #else
-            //CheckForUpdates();
+            CheckForUpdates();
 #endif
         }
         private void OnNavigationMessageReceived(NavigationMessage message)
