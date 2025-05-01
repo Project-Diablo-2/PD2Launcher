@@ -1,8 +1,10 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using PD2Launcherv2.Helpers;
 using PD2Launcherv2.Interfaces;
+using PD2Launcherv2.Models;
 using PD2Launcherv2.Storage;
 using PD2Launcherv2.ViewModels;
+using ProjectDiablo2Launcherv2.Models;
 using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
@@ -61,10 +63,11 @@ namespace PD2Launcherv2
             services.AddTransient<OptionsViewModel>();
             services.AddTransient<AboutViewModel>();
             services.AddTransient<FiltersViewModel>();
+            services.AddTransient<MainWindow>();
 
             // Additional services and view models can be registered here as needed.
-            // This allows for easy expansion and maintenance of the application's components.
         }
+
 
         /// <summary>
         /// Overrides the <see cref="OnStartup"/> method to perform tasks when the application starts.
@@ -72,23 +75,65 @@ namespace PD2Launcherv2
         /// provided by dependency injection.
         /// </summary>
         /// <param name="e">Contains the arguments for the startup event.</param>
-        protected override void OnStartup(StartupEventArgs e)
+        protected override async void OnStartup(StartupEventArgs e)
         {
-            // The name here should match the name of your application's executable without the .exe part
-            var currentProcessName = System.Diagnostics.Process.GetCurrentProcess().ProcessName;
-
-            // Check if there are any other processes with the same name as the current process
-            if (System.Diagnostics.Process.GetProcessesByName(currentProcessName).Length > 1)
+            var currentProcessName = Process.GetCurrentProcess().ProcessName;
+            if (Process.GetProcessesByName(currentProcessName).Length > 1)
             {
                 MessageBox.Show("An instance of the launcher is already running.");
-                Application.Current.Shutdown(); // Shut down the current application instance
+                Shutdown();
                 return;
             }
 
+            if (e.Args.Any(arg => arg.Equals("--steam", StringComparison.OrdinalIgnoreCase)))
+            {
+                Debug.WriteLine("Steam arg Identified: Running Headless Launcher");
+
+                var localStorage = _serviceProvider.GetRequiredService<ILocalStorage>();
+                var filterHelpers = _serviceProvider.GetRequiredService<FilterHelpers>();
+                var fileUpdateHelpers = _serviceProvider.GetRequiredService<FileUpdateHelpers>();
+                var launchGameHelpers = _serviceProvider.GetRequiredService<LaunchGameHelpers>();
+
+                try
+                {
+                    if (Process.GetProcessesByName("Game").Any())
+                    {
+                        Debug.WriteLine("Game already running.");
+                        return;
+                    }
+
+                    var selected = localStorage.LoadSection<SelectedAuthorAndFilter>(StorageKey.SelectedAuthorAndFilter);
+                    if (selected?.selectedFilter != null)
+                    {
+                        await filterHelpers.CheckAndUpdateFilterAsync(selected);
+                    }
+
+                    var launcherArgs = localStorage.LoadSection<LauncherArgs>(StorageKey.LauncherArgs);
+                    if (!launcherArgs.disableAutoUpdate)
+                    {
+                        try
+                        {
+                            await fileUpdateHelpers.UpdateFilesCheck(localStorage, new Progress<double>(), () => { });
+                            await fileUpdateHelpers.SyncFilesFromEnvToRoot(localStorage);
+                        }
+                        catch (HttpRequestException ex)
+                        {
+                            Debug.WriteLine($"Headless update failed: {ex.Message}");
+                        }
+                    }
+
+                    launchGameHelpers.LaunchGame(localStorage);
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Steam launch error: {ex.Message}");
+                }
+
+                return;
+            }
+
+            // Normal UI mode
             base.OnStartup(e);
-            // Retrieves the MainWindow instance from the service provider and shows it.
-            // This demonstrates how dependency injection can be used to create and manage
-            // the application's main window.
             var mainWindow = _serviceProvider.GetService<MainWindow>();
             mainWindow?.Show();
         }

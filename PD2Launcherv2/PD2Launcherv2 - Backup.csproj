@@ -1,0 +1,106 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net6.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <ApplicationIcon>Resources\Icons\icon.ico</ApplicationIcon>
+    <AssemblyName>PD2Launcher</AssemblyName>
+    <IsPublishable>True</IsPublishable>
+    <PublishReadyToRun>true</PublishReadyToRun>
+    <PublishSingleFile>true</PublishSingleFile>
+    <RuntimeIdentifier>win-x86</RuntimeIdentifier>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="Resources\Fonts\exocet-blizzard-heavy.otf" />
+    <None Remove="Resources\Fonts\exocet-blizzard-light.ttf" />
+    <None Remove="Resources\Fonts\exocet-blizzard-medium.ttf" />
+    <None Remove="Resources\Icons\icon.ico" />
+    <None Remove="Resources\Icons\icon.png" />
+    <None Remove="Resources\Images\bg.jpg" />
+    <None Remove="Resources\Images\bg_plain.jpg" />
+    <None Remove="Resources\Images\btn_beta.jpg" />
+    <None Remove="Resources\Images\btn_live.jpg" />
+    <None Remove="Resources\Images\btn_more.jpg" />
+    <None Remove="Resources\Images\btn_more_pressed.jpg" />
+    <None Remove="Resources\Images\btn_switch.jpg" />
+    <None Remove="Resources\Images\btn_switch_pressed.jpg" />
+    <None Remove="Resources\Images\checkbox_checked.png" />
+    <None Remove="Resources\Images\checkbox_unchecked.png" />
+    <None Remove="Resources\Images\close.jpg" />
+    <None Remove="Resources\Images\close_pressed.jpg" />
+    <None Remove="Resources\Images\donate.jpg" />
+    <None Remove="Resources\Images\donate_pressed.jpg" />
+    <None Remove="Resources\Images\empty_button.png" />
+    <None Remove="Resources\Images\logo.gif" />
+    <None Remove="Resources\Images\loot.jpg" />
+    <None Remove="Resources\Images\loot_pressed.jpg" />
+    <None Remove="Resources\Images\minimize.jpg" />
+    <None Remove="Resources\Images\minimize_pressed.jpg" />
+    <None Remove="Resources\Images\options.jpg" />
+    <None Remove="Resources\Images\options_pressed.jpg" />
+    <None Remove="Resources\Images\play.jpg" />
+    <None Remove="Resources\Images\play_pressed.jpg" />
+    <None Remove="Resources\Images\thin_next.jpg" />
+    <None Remove="Resources\Images\thin_prev.jpg" />
+    <None Remove="Resources\Images\updating_disabled.jpg" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Resources\Icons\icon.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Crc32.NET" Version="1.2.0" />
+    <PackageReference Include="MadMilkman.Ini" Version="1.0.6" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.0-preview.2.24128.5" />
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2739.15" />
+    <PackageReference Include="MvvmLightLibs" Version="5.4.1.1" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="sharpconfig" Version="3.2.9.1" />
+    <PackageReference Include="WpfAnimatedGif" Version="2.0.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Resources\Fonts\exocet-blizzard-heavy.otf" />
+    <Resource Include="Resources\Fonts\exocet-blizzard-light.ttf" />
+    <Resource Include="Resources\Fonts\exocet-blizzard-medium.ttf" />
+    <Resource Include="Resources\Icons\icon.ico" />
+    <Resource Include="Resources\Icons\icon.png" />
+    <Resource Include="Resources\Images\bg.jpg" />
+    <Resource Include="Resources\Images\bg_plain.jpg" />
+    <Resource Include="Resources\Images\btn_beta.jpg" />
+    <Resource Include="Resources\Images\btn_live.jpg" />
+    <Resource Include="Resources\Images\btn_more.jpg" />
+    <Resource Include="Resources\Images\btn_more_pressed.jpg" />
+    <Resource Include="Resources\Images\btn_switch.jpg" />
+    <Resource Include="Resources\Images\btn_switch_pressed.jpg" />
+    <Resource Include="Resources\Images\checkbox_checked.png" />
+    <Resource Include="Resources\Images\checkbox_unchecked.png" />
+    <Resource Include="Resources\Images\close.jpg" />
+    <Resource Include="Resources\Images\close_pressed.jpg" />
+    <Resource Include="Resources\Images\donate.jpg" />
+    <Resource Include="Resources\Images\donate_pressed.jpg" />
+    <Resource Include="Resources\Images\empty_button.png" />
+    <Resource Include="Resources\Images\logo.gif" />
+    <Resource Include="Resources\Images\loot.jpg" />
+    <Resource Include="Resources\Images\loot_pressed.jpg" />
+    <Resource Include="Resources\Images\minimize.jpg" />
+    <Resource Include="Resources\Images\minimize_pressed.jpg" />
+    <Resource Include="Resources\Images\options.jpg" />
+    <Resource Include="Resources\Images\options_pressed.jpg" />
+    <Resource Include="Resources\Images\play.jpg" />
+    <Resource Include="Resources\Images\play_pressed.jpg" />
+    <Resource Include="Resources\Images\thin_next.jpg" />
+    <Resource Include="Resources\Images\thin_prev.jpg" />
+    <Resource Include="Resources\Images\updating_disabled.jpg" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Services\" />
+  </ItemGroup>
+
+</Project>
