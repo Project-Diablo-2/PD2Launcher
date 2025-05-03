@@ -1,11 +1,9 @@
 ﻿using Newtonsoft.Json;
-using PD2Launcherv2.Interfaces;
-using PD2Launcherv2.Models;
-using ProjectDiablo2Launcherv2.Models;
+using PD2Shared.Interfaces;
+using PD2Shared.Models;
 using System.Diagnostics;
-using System.IO;
 
-namespace PD2Launcherv2.Storage
+namespace PD2Shared.Storage
 {
     public class LocalStorage : ILocalStorage
     {

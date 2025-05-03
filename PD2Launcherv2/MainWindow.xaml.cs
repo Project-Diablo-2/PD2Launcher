@@ -2,12 +2,10 @@
 using GalaSoft.MvvmLight.Messaging;
 using PD2Launcherv2.Enums;
 using PD2Launcherv2.Helpers;
-using PD2Launcherv2.Interfaces;
+using PD2Shared.Interfaces;
 using PD2Launcherv2.Messages;
-using PD2Launcherv2.Models;
+using PD2Shared.Models;
 using PD2Launcherv2.Views;
-using ProjectDiablo2Launcherv2.Models;
-using System;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
@@ -18,6 +16,7 @@ using System.Windows.Input;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Threading;
+using System.IO;
 
 namespace PD2Launcherv2
 {
@@ -580,6 +579,75 @@ namespace PD2Launcherv2
                     newsItems.Insert(0, resetNewsItem);
                 }
             }
+        }
+
+        //Include s10 bug fix for: "new version" popup can get stuck behind the launcher itself
+        private async Task HandleLauncherUpdate(string launcherMediaLink, IProgress<double> progress, Action onDownloadComplete)
+        {
+            var installPath = Directory.GetCurrentDirectory();
+            var tempDownloadPath = Path.Combine(installPath, "TempLauncher.exe");
+
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                Window? ownerWindow = Application.Current.MainWindow;
+                MessageBox.Show(ownerWindow, "A launcher update has been identified, select OK to start update.", "Update Ready", MessageBoxButton.OK, MessageBoxImage.Information);
+            });
+
+            await _fileUpdateHelpers.DownloadFileAsync(launcherMediaLink, tempDownloadPath, progress);
+
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                Window? ownerWindow = Application.Current.MainWindow;
+                MessageBox.Show(ownerWindow, "The launcher will now close to apply an update. Please wait for the launcher to reopen.", "Update in Progress", MessageBoxButton.OK, MessageBoxImage.Information);
+                _fileUpdateHelpers.StartUpdateProcess();
+                Application.Current.MainWindow?.Close();
+            });
+            await Task.Delay(1500);
+
+            onDownloadComplete?.Invoke();
+        }
+
+        public async Task UpdateLauncherCheck(ILocalStorage _localStorage, IProgress<double> progress, Action onDownloadComplete)
+        {
+            Debug.WriteLine("\n\n\n\nstart UpdateLauncherCheck");
+            var fileUpdateModel = _localStorage.LoadSection<FileUpdateModel>(PD2Shared.Models.StorageKey.FileUpdateModel);
+            var installPath = Directory.GetCurrentDirectory();
+
+            if (fileUpdateModel != null)
+            {
+                var cloudFileItems = await _fileUpdateHelpers.GetCloudFileMetadataAsync(fileUpdateModel.Launcher);
+
+                foreach (var cloudFile in cloudFileItems)
+                {
+                    var localFilePath = Path.Combine(installPath, cloudFile.Name);
+
+                    // Handle launcher update specifically
+                    if (cloudFile.Name == "PD2Launcher.exe")
+                    {
+                        var launcherNeedsUpdate = !File.Exists(localFilePath) || !_fileUpdateHelpers.CompareCRC(localFilePath, cloudFile.Crc32c);
+                        if (launcherNeedsUpdate)
+                        {
+                            await HandleLauncherUpdate(cloudFile.MediaLink, progress, onDownloadComplete);
+                            // Exit the loop and method after handling the launcher update
+                            return;
+                        }
+                    }
+                    else
+                    {
+                        // Directly download or update other files
+                        if (!File.Exists(localFilePath) || !_fileUpdateHelpers.CompareCRC(localFilePath, cloudFile.Crc32c))
+                        {
+                            await _fileUpdateHelpers.DownloadFileAsync(cloudFile.MediaLink, localFilePath, progress);
+                        }
+                    }
+                }
+            }
+            else
+            {
+                Debug.WriteLine("FileUpdateModel is not set or directory does not exist.");
+            }
+            onDownloadComplete?.Invoke();
+            Debug.WriteLine("end UpdateLauncherCheck \n");
         }
     }
 }

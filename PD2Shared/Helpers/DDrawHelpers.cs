@@ -2,19 +2,20 @@
 using MadMilkman.Ini;
 using PD2Shared.Interfaces;
 using PD2Shared.Models;
-using ProjectDiablo2Launcherv2;
+using PD2Shared.Storage;
+using PD2Shared;
 using System.Diagnostics;
 using System.IO;
 
-namespace PD2Launcherv2.Helpers
+namespace PD2Shared.Helpers
 {
     public class DDrawHelpers
     {
         private readonly ILocalStorage _localStorage;
 
-        public DDrawHelpers()
+        public DDrawHelpers(ILocalStorage localStorage)
         {
-            _localStorage = (ILocalStorage)App.ServiceProvider.GetService(typeof(ILocalStorage));
+            _localStorage = localStorage;
         }
 
         public DdrawOptions ReadDdrawOptions()

@@ -1,7 +1,6 @@
 ﻿using Force.Crc32;
 using PD2Shared.Interfaces;
 using PD2Shared.Models;
-using ProjectDiablo2Launcherv2;
 using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
@@ -10,7 +9,7 @@ using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using System.Windows;
 
-namespace PD2Launcherv2.Helpers
+namespace PD2Shared.Helpers
 {
     public class FileUpdateHelpers : IFileUpdateHelpers
     {
@@ -87,7 +86,7 @@ namespace PD2Launcherv2.Helpers
             return new List<CloudFileItem>();
         }
 
-        public async Task<bool> DownloadFileAsync(string fileUrl, string destinationPath, IProgress<double> progress)
+        private async Task<bool> DownloadFileAsync(string fileUrl, string destinationPath, IProgress<double> progress)
         {
             // add retries for s10 Time out bugs from people having shitty internet
             int maxRetries = 3;
@@ -263,10 +262,7 @@ namespace PD2Launcherv2.Helpers
             {
                 // Handle other general exceptions
                 Debug.WriteLine($"An error occurred while updating files: {ex.Message}");
-                Application.Current.Dispatcher.Invoke(() =>
-                {
-                    ShowErrorMessage($"An error occurred while updating files: {ex.Message}\nPlease verify your game is closed and try again.");
-                });
+               
             }
             finally
             {
@@ -328,76 +324,7 @@ namespace PD2Launcherv2.Helpers
         private void ShowErrorMessage(string message)
         {
 
-            MessageBox.Show(message, "Error Updating Files", MessageBoxButton.OK, MessageBoxImage.Error);
-        }
-
-        public async Task UpdateLauncherCheck(ILocalStorage _localStorage, IProgress<double> progress, Action onDownloadComplete)
-        {
-            Debug.WriteLine("\n\n\n\nstart UpdateLauncherCheck");
-            var fileUpdateModel = _localStorage.LoadSection<FileUpdateModel>(PD2Shared.Models.StorageKey.FileUpdateModel);
-            var installPath = Directory.GetCurrentDirectory();
-
-            if (fileUpdateModel != null)
-            {
-                var cloudFileItems = await GetCloudFileMetadataAsync(fileUpdateModel.Launcher);
-
-                foreach (var cloudFile in cloudFileItems)
-                {
-                    var localFilePath = Path.Combine(installPath, cloudFile.Name);
-
-                    // Handle launcher update specifically
-                    if (cloudFile.Name == "PD2Launcher.exe")
-                    {
-                        var launcherNeedsUpdate = !File.Exists(localFilePath) || !CompareCRC(localFilePath, cloudFile.Crc32c);
-                        if (launcherNeedsUpdate)
-                        {
-                            await HandleLauncherUpdate(cloudFile.MediaLink, progress, onDownloadComplete);
-                            // Exit the loop and method after handling the launcher update
-                            return;
-                        }
-                    }
-                    else
-                    {
-                        // Directly download or update other files
-                        if (!File.Exists(localFilePath) || !CompareCRC(localFilePath, cloudFile.Crc32c))
-                        {
-                            await DownloadFileAsync(cloudFile.MediaLink, localFilePath, progress);
-                        }
-                    }
-                }
-            }
-            else
-            {
-                Debug.WriteLine("FileUpdateModel is not set or directory does not exist.");
-            }
-            onDownloadComplete?.Invoke();
-            Debug.WriteLine("end UpdateLauncherCheck \n");
-        }
-
-        //Include s10 bug fix for: "new version" popup can get stuck behind the launcher itself
-        private async Task HandleLauncherUpdate(string launcherMediaLink, IProgress<double> progress, Action onDownloadComplete)
-        {
-            var installPath = Directory.GetCurrentDirectory();
-            var tempDownloadPath = Path.Combine(installPath, "TempLauncher.exe");
-
-            Application.Current.Dispatcher.Invoke(() =>
-            {
-                Window? ownerWindow = Application.Current.MainWindow;
-                MessageBox.Show(ownerWindow, "A launcher update has been identified, select OK to start update.", "Update Ready", MessageBoxButton.OK, MessageBoxImage.Information);
-            });
-
-            await DownloadFileAsync(launcherMediaLink, tempDownloadPath, progress);
-
-            Application.Current.Dispatcher.Invoke(() =>
-            {
-                Window? ownerWindow = Application.Current.MainWindow;
-                MessageBox.Show(ownerWindow, "The launcher will now close to apply an update. Please wait for the launcher to reopen.", "Update in Progress", MessageBoxButton.OK, MessageBoxImage.Information);
-                StartUpdateProcess();
-                Application.Current.MainWindow?.Close();
-            });
-            await Task.Delay(1500);
-
-            onDownloadComplete?.Invoke();
+           Debug.WriteLine($"Error: {message}");
         }
 
         private bool IsFileExcluded(string fileName)

@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json;
-using PD2Launcherv2.Interfaces;
-using PD2Launcherv2.Models;
+using PD2Shared.Interfaces;
+using PD2Shared.Models;
 using System.Diagnostics;
 using System.Net.Http.Headers;
 using System.Net.Http;

@@ -5,7 +5,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Windows;
 
-namespace PD2Launcherv2.Helpers
+namespace PD2Shared.Helpers
 {
     public class LaunchGameHelpers : ILaunchGameHelpers
     {
@@ -18,7 +18,7 @@ namespace PD2Launcherv2.Helpers
             {
                 Debug.WriteLine("Game.exe not found.");
                 // Update UI or notify user accordingly
-                MessageBox.Show("could not find game.exe", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                //MessageBox.Show("could not find game.exe", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 

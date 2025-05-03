@@ -1,10 +1,9 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using PD2Launcherv2.Helpers;
-using PD2Launcherv2.Interfaces;
-using PD2Launcherv2.Models;
-using PD2Launcherv2.Storage;
+using PD2Shared.Interfaces;
+using PD2Shared.Models;
+using PD2Shared.Storage;
 using PD2Launcherv2.ViewModels;
-using ProjectDiablo2Launcherv2.Models;
 using System.Diagnostics;
 using System.IO;
 using System.Net.Http;

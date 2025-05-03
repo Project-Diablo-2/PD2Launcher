@@ -7,7 +7,7 @@ using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
 
-namespace PD2Launcherv2.Helpers
+namespace PD2Shared.Helpers
 {
     public class FilterHelpers : IFilterHelpers
     {
