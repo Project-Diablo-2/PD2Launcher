@@ -235,9 +235,9 @@
         <!-- No Updates -->
         <Image x:Name="UpdatesNotification"
                Focusable="False"
-               Source="pack://application:,,,/Resources/Images/btn_no_updates.jpg" Stretch="Fill"
-               Height="10"
-               Width="50"
+               Source="pack://application:,,,/Resources/Images/btn_no_updates3.jpg" Stretch="Fill"
+               Height="20"
+               Width="100"
                HorizontalAlignment="Left"
                VerticalAlignment="Bottom"
                Margin="50,5,0,135"

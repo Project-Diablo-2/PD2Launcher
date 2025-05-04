@@ -29,6 +29,7 @@
     <None Remove="Resources\Images\btn_more_pressed.jpg" />
     <None Remove="Resources\Images\btn_no_updates.jpg" />
     <None Remove="Resources\Images\btn_no_updates2.jpg" />
+    <None Remove="Resources\Images\btn_no_updates3.jpg" />
     <None Remove="Resources\Images\btn_switch.jpg" />
     <None Remove="Resources\Images\btn_switch_pressed.jpg" />
     <None Remove="Resources\Images\checkbox_checked.png" />
@@ -54,6 +55,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Resource Include="Resources\Images\btn_no_updates3.jpg" />
     <Resource Include="Resources\Images\custom_notif.jpg" />
   </ItemGroup>
 
