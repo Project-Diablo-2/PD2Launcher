@@ -14,7 +14,7 @@ namespace PD2Shared
             IProgress<double>? progress = null,
             Action? onDownloadComplete = null)
         {
-            Console.WriteLine("[PD2Shared] Update and Launch started............");
+            Console.WriteLine("[PD2Shared] Update and Launch started...............");
 
             try
             {

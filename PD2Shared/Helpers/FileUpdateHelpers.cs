@@ -61,6 +61,27 @@ namespace PD2Shared.Helpers
             }
         }
 
+        public void StartUpdateProcessWithSteam(string installPath)
+        {
+            string[] args = new[]
+            {
+                $"\"{Path.Combine(installPath, "PD2Launcher.exe")}\"",
+                $"\"{Path.Combine(installPath, "TempPD2Launcher.exe")}\"",
+                $"\"{Path.Combine(installPath, "PD2Shared.dll")}\"",
+                $"\"{Path.Combine(installPath, "TempPD2Shared.dll")}\"",
+                $"\"{Path.Combine(installPath, "SteamPD2.exe")}\"",
+                $"\"{Path.Combine(installPath, "TempSteamPD2.exe")}\"",
+                $"\"{Path.Combine(installPath, "SteamPD2.exe")}\""
+            };
+
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = Path.Combine(installPath, "UpdateUtility.exe"),
+                Arguments = string.Join(" ", args),
+                UseShellExecute = true
+            });
+        }
+
         public async Task<List<CloudFileItem>> GetCloudFileMetadataAsync(string cloudFileBucket)
         {
             int maxRetries = 3;
@@ -133,12 +154,14 @@ namespace PD2Shared.Helpers
                 }
                 catch (HttpRequestException ex) when (attempt < maxRetries)
                 {
-                    Debug.WriteLine($"[Retry {attempt}/{maxRetries}] Failed to download {fileUrl}: {ex.Message}. Retrying...");
-                    await Task.Delay(delayBetweenRetries);
+                    Debug.WriteLine($"[Retry {attempt}/{maxRetries}] HTTP request failed: {ex.Message}");
+                    if (attempt == maxRetries)
+                    Console.WriteLine($"FAILED on {fileUrl} after {attempt} attempts");
                 }
             }
 
             Debug.WriteLine($"Failed to download {fileUrl} after retries.");
+            Console.WriteLine($"Failed to download {fileUrl} after retries.");
             return false;
         }
 
@@ -150,7 +173,7 @@ namespace PD2Shared.Helpers
             // First, check if both files exist to avoid FileNotFoundException
             if (!File.Exists(sourceFilePath) || !File.Exists(destinationFilePath))
             {
-                return false; // One or both files do not exist, so they can't be compared
+                return false;
             }
 
             uint crcSource = Crc32CFromFile(sourceFilePath);

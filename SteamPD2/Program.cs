@@ -1,97 +1,122 @@
 ﻿using System;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using PD2Shared.Helpers;
-using PD2Shared.Storage;
 using PD2Shared.Interfaces;
 using PD2Shared.Models;
+using PD2Shared.Storage;
 
 namespace SteamPD2
 {
     class Program
     {
+        static readonly string logPath = Path.Combine(AppContext.BaseDirectory, "SteamPD2.log");
+
         static async Task Main(string[] args)
         {
-            Console.WriteLine("SteamPD2 Bootstrapper Starting.......");
+            try
+            {
+                await Run(args);
+            }
+            catch (Exception ex)
+            {
+                Log($"FATAL ERROR: {ex}");
+            }
+        }
 
-            // Init basic dependencies
-            var storage = new LocalStorage(); // Your DI may need adjustment
-            storage.InitializeIfNotExists(StorageKey.FileUpdateModel, new FileUpdateModel());
+        static async Task Run(string[] args)
+        {
+            Log("-=-=-= SteamPD2 Bootstrap Starting =-=-=-");
 
-            var updateHelpers = new FileUpdateHelpers(new HttpClient());
+            var localStorage = new LocalStorage();
+            var fileUpdateHelpers = new FileUpdateHelpers(new HttpClient());
+            var filterHelpers = new FilterHelpers(new HttpClient(), localStorage);
+            var launchGameHelpers = new LaunchGameHelpers();
 
-            var fileUpdateModel = storage.LoadSection<FileUpdateModel>(StorageKey.FileUpdateModel);
+            var fileUpdateModel = localStorage.LoadSection<FileUpdateModel>(StorageKey.FileUpdateModel);
+            Console.WriteLine($"Cloud path: {fileUpdateModel?.Launcher}");
             if (fileUpdateModel == null)
             {
-                Console.WriteLine("File update model not found.");
+                Log("FileUpdateModel missing. Exiting..");
                 return;
             }
 
-            Console.WriteLine("Checking core launcher files (Big 4)...");
-            var cloudItems = await updateHelpers.GetCloudFileMetadataAsync(fileUpdateModel.Launcher);
+            var cloudFiles = await fileUpdateHelpers.GetCloudFileMetadataAsync(fileUpdateModel.Launcher);
+            var installPath = Directory.GetCurrentDirectory();
             var bigFour = new[] { "PD2Launcher.exe", "PD2Shared.dll", "SteamPD2.exe", "UpdateUtility.exe" };
-            bool needsUpdate = false;
 
-            foreach (var file in bigFour)
+            bool needsBig4Update = bigFour.Any(name =>
             {
-                var item = cloudItems.Find(i => i.Name == file);
-                if (item == null) continue;
+                var cloudItem = cloudFiles.FirstOrDefault(i => i.Name == name);
+                var localPath = Path.Combine(installPath, name);
+                return cloudItem != null && (!File.Exists(localPath) || !fileUpdateHelpers.CompareCRC(localPath, cloudItem.Crc32c));
+            });
 
-                var localPath = Path.Combine(Directory.GetCurrentDirectory(), file);
-                if (!File.Exists(localPath) || !updateHelpers.CompareCRC(localPath, item.Crc32c))
-                {
-                    Console.WriteLine($"Update required: {file}");
-                    needsUpdate = true;
-                    break;
-                }
-            }
-
-            if (needsUpdate)
+            if (needsBig4Update)
             {
-                Console.WriteLine("Downloading updated files...");
-
-                foreach (var file in bigFour)
+                Log("Launcher update detected. Downloading...");
+                foreach (var fileName in bigFour)
                 {
-                    var item = cloudItems.Find(i => i.Name == file);
-                    if (item == null) continue;
+                    Log($"Found cloud file: {fileName}");
 
-                    var tempName = file == "UpdateUtility.exe" ? file : "Temp" + file;
-                    var tempPath = Path.Combine(Directory.GetCurrentDirectory(), tempName);
-                    bool downloaded = await updateHelpers.PrepareLauncherUpdateAsync(item.MediaLink, tempPath, new Progress<double>(p =>
+                    var cloudItem = cloudFiles.FirstOrDefault(i => i.Name == fileName);
+                    if (cloudItem == null) continue;
+                    
+                    var progress = new Progress<double>(v =>
                     {
-                        Console.WriteLine($"Downloading {file}: {(int)(p * 100)}%");
-                    }));
-
+                        Console.WriteLine($"Downloading... {(int)(v * 100)}%");
+                    });
+                    var targetName = fileName == "UpdateUtility.exe" ? fileName : "Temp" + fileName;
+                    var path = Path.Combine(installPath, targetName);
+                    bool downloaded = await fileUpdateHelpers.PrepareLauncherUpdateAsync(cloudItem.MediaLink, path, progress);
                     if (!downloaded)
                     {
-                        Console.WriteLine($"Failed to download {file}, aborting update.");
+                        Log($"Failed to download {fileName}. Exiting.");
                         return;
                     }
                 }
 
-                Console.WriteLine("Update ready. Launching UpdateUtility.exe...");
-                updateHelpers.StartUpdateProcess();
-                await Task.Delay(250);
+                Log("Launching updater utility...");
+                fileUpdateHelpers.StartUpdateProcessWithSteam(installPath);
                 return;
             }
 
-            Console.WriteLine("Files up to date. Continuing to game launch...");
+            Log("Launcher files up to date. Checking game files...");
 
-            var filterHelpers = new FilterHelpers(new HttpClient(), storage);
-            var selectedFilter = storage.LoadSection<SelectedAuthorAndFilter>(StorageKey.SelectedAuthorAndFilter);
-
-            if (selectedFilter?.selectedFilter != null)
+            try
             {
-                Console.WriteLine("Checking for filter updates...");
-                await filterHelpers.CheckAndUpdateFilterAsync(selectedFilter);
+                await fileUpdateHelpers.UpdateFilesCheck(localStorage, new Progress<double>(v =>
+                {
+                    Log($"Game update: {(int)(v * 100)}%");
+                }), () => Log("Game files updated."));
+
+                await fileUpdateHelpers.SyncFilesFromEnvToRoot(localStorage);
+
+                Log("Checking filters...");
+                var selectedFilter = localStorage.LoadSection<SelectedAuthorAndFilter>(StorageKey.SelectedAuthorAndFilter);
+                if (selectedFilter?.selectedFilter != null)
+                    await filterHelpers.CheckAndUpdateFilterAsync(selectedFilter);
+
+                Log("Launching game...");
+                launchGameHelpers.LaunchGame(localStorage);
             }
+            catch (Exception ex)
+            {
+                Log($"Exception occurred: {ex.Message}");
+            }
+        }
 
-            Console.WriteLine("Syncing game files...");
-            await updateHelpers.SyncFilesFromEnvToRoot(storage);
-
-            Console.WriteLine("Launching game...");
-            var launcher = new LaunchGameHelpers();
-            launcher.LaunchGame(storage);
+        static void Log(string msg)
+        {
+            Console.WriteLine(msg);
+            try
+            {
+                File.AppendAllText(logPath, $"[{DateTime.Now}] {msg}\n");
+            }
+            catch { /* Don't crash if logging failss */ }
         }
     }
 }

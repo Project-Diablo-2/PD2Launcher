@@ -42,7 +42,7 @@ namespace PD2Launcherv2
                 if (_isBeta != value)
                 {
                     _isBeta = value;
-                    Debug.WriteLine($"IsBeta changing to......: {value}");
+                    Debug.WriteLine($"IsBeta changing to........: {value}");
                     BetaVisibility = value ? Visibility.Visible : Visibility.Collapsed;
                     OnPropertyChanged(nameof(IsBeta));
                 }

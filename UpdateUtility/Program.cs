@@ -6,7 +6,7 @@ namespace UpdateUtility
     {
         static async Task Main(string[] args)
         {
-            Console.WriteLine("==== Update Utility Started ====");
+            Console.WriteLine("-=-=-= Update Utility Started =-=-=-");
 
             if (args.Length < 6 || args.Length > 7)
             {
