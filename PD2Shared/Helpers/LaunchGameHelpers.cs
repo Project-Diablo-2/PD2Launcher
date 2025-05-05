@@ -17,8 +17,6 @@ namespace PD2Shared.Helpers
             if (!File.Exists(diabloIIExePath))
             {
                 Debug.WriteLine("Game.exe not found.");
-                // Update UI or notify user accordingly
-                //MessageBox.Show("could not find game.exe", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 

@@ -60,14 +60,13 @@ namespace SteamPD2
                 Log("Launcher update detected. Downloading...");
                 foreach (var fileName in bigFour)
                 {
-                    Log($"Found cloud file: {fileName}");
-
+                    Log($"Queueing update: {fileName}");
                     var cloudItem = cloudFiles.FirstOrDefault(i => i.Name == fileName);
                     if (cloudItem == null) continue;
-                    
+
                     var progress = new Progress<double>(v =>
                     {
-                        Console.WriteLine($"Downloading... {(int)(v * 100)}%");
+                        Console.Write($"\rDownloading {fileName}: {(int)(v * 100)}%   ");
                     });
                     var targetName = fileName == "UpdateUtility.exe" ? fileName : "Temp" + fileName;
                     var path = Path.Combine(installPath, targetName);
@@ -90,7 +89,7 @@ namespace SteamPD2
             {
                 await fileUpdateHelpers.UpdateFilesCheck(localStorage, new Progress<double>(v =>
                 {
-                    Log($"Game update: {(int)(v * 100)}%");
+                    Console.Write($"\rGame update: {(int)(v * 100)}%   ");
                 }), () => Log("Game files updated."));
 
                 await fileUpdateHelpers.SyncFilesFromEnvToRoot(localStorage);
