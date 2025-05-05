@@ -40,7 +40,7 @@ namespace SteamPD2
             Console.WriteLine($"Cloud path: {fileUpdateModel?.Launcher}");
             if (fileUpdateModel == null)
             {
-                Log("FileUpdateModel missing. Exiting..");
+                Log("FileUpdateModel missing. Exiting.");
                 return;
             }
 

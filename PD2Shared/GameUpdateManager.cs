@@ -111,7 +111,7 @@ namespace PD2Shared
                 Console.WriteLine("[PD2Shared] Game files updated.");
 
                 gameLauncher.LaunchGame(storage);
-                Console.WriteLine("[PD2Shared] Game launched.");
+                Console.WriteLine("[PD2Shared] Game launched");
             }
             catch (Exception ex)
             {

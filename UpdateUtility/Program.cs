@@ -53,7 +53,7 @@ namespace UpdateUtility
 
             while (Process.GetProcessesByName(processName).Length > 0)
             {
-                Console.WriteLine($"Waiting for {processName} to exit...");
+                Console.WriteLine($"Waiting for {processName} to exit..");
                 await Task.Delay(1000);
             }
         }

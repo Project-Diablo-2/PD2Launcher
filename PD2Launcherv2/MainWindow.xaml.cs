@@ -42,7 +42,7 @@ namespace PD2Launcherv2
                 if (_isBeta != value)
                 {
                     _isBeta = value;
-                    Debug.WriteLine($"IsBeta changing to........: {value}");
+                    Debug.WriteLine($"IsBeta changing to.: {value}");
                     BetaVisibility = value ? Visibility.Visible : Visibility.Collapsed;
                     OnPropertyChanged(nameof(IsBeta));
                 }
@@ -691,7 +691,7 @@ namespace PD2Launcherv2
                 }
             }
 
-            ShowTopmostMessageBox("Launcher update is ready. The app will now close and update..", "Update Ready");
+            ShowTopmostMessageBox("Launcher update is ready. The app will now close and update...", "Update Ready");
             _fileUpdateHelpers.StartUpdateProcess();
 
             await Task.Delay(250);
