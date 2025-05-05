@@ -3,6 +3,7 @@ using GalaSoft.MvvmLight.Messaging;
 using Microsoft.Web.WebView2.Wpf;
 using PD2Launcherv2.Enums;
 using PD2Launcherv2.Helpers;
+using PD2Shared.Helpers;
 using PD2Shared.Interfaces;
 using PD2Shared.Models;
 using System.Diagnostics;

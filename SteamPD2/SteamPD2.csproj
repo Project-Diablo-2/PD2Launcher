@@ -6,6 +6,10 @@
     <Nullable>enable</Nullable>
     <ApplicationIcon>Resources\Icons\icon.ico</ApplicationIcon>
     <OutputType>WinExe</OutputType>
+    <PublishSingleFile>true</PublishSingleFile>
+    <PublishTrimmed>false</PublishTrimmed>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
   </PropertyGroup>
 
   <ItemGroup>

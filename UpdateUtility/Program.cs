@@ -6,91 +6,132 @@ namespace UpdateUtility
     {
         static async Task Main(string[] args)
         {
-            Console.WriteLine("Update Utility Started.");
+            Console.WriteLine("==== Update Utility Started ====");
 
-            // Define the paths for PD2Launcher.exe and TempLauncher.exe
-            string currentDirectory = Directory.GetCurrentDirectory();
-            string pd2LauncherPath = Path.Combine(currentDirectory, "PD2Launcher.exe");
-            string tempLauncherPath = Path.Combine(currentDirectory, "TempLauncher.exe");
-
-            //no arguments are passed and PD2Launcher.exe exists
-            if (args.Length == 0 && File.Exists(pd2LauncherPath))
+            if (args.Length < 6 || args.Length > 7)
             {
+                Console.WriteLine("Expected 6 or 7 args: PD2Launcher TempPD2Launcher PD2Shared TempPD2Shared SteamPD2 TempSteamPD2 [ExeToStart]");
                 return;
             }
 
-            //file bucket for launchers
-            string defaultLauncherUrl = "https://storage.googleapis.com/storage/v1/b/pd2-launcher-update/o/PD2Launcher.exe?alt=media";
-            string betaLauncherUrl = "https://storage.googleapis.com/storage/v1/b/pd2-beta-launcher-update/o/PD2Launcher.exe?alt=media";
+            var pd2Launcher = args[0];
+            var tempLauncher = args[1];
+            var sharedDll = args[2];
+            var tempShared = args[3];
+            var steamLauncher = args[4];
+            var tempSteam = args[5];
+            var exeToStart = args.Length == 7 ? args[6] : pd2Launcher;
 
-            //is a Beta directory?
-            bool isBetaDirectory = currentDirectory.Contains("ProjectD2Beta");
-            string launcherUrl = isBetaDirectory ? betaLauncherUrl : defaultLauncherUrl;
+            await KillAndWait("PD2Launcher");
+            await KillAndWait("SteamPD2");
 
-            //no arguments are passed and PD2Launcher.exe does not exist
-            if (args.Length == 0 && !File.Exists(pd2LauncherPath))
-            {
-                Console.WriteLine("PD2Launcher.exe not found. Downloading...");
-                await DownloadFileAsync(launcherUrl, pd2LauncherPath);
-                StartLauncher(pd2LauncherPath);
-                return; // Exit after attempting to start or download the launcher
-            }
+            await Task.Delay(2500);
 
-            // Wait for PD2Launcher.exe to close if it's running
-            await WaitForLauncherToClose();
+            TryReplace(tempLauncher, pd2Launcher, "PD2Launcher");
+            TryReplace(tempShared, sharedDll, "PD2Shared.dll");
+            TryReplace(tempSteam, steamLauncher, "SteamPD2");
 
-            // Update PD2Launcher.exe using TempLauncher.exe
-            if (File.Exists(tempLauncherPath))
+            Console.WriteLine($"Starting: {Path.GetFileName(exeToStart)}");
+            StartExecutable(exeToStart);
+        }
+
+        static async Task KillAndWait(string processName)
+        {
+            var procs = Process.GetProcessesByName(processName);
+            foreach (var p in procs)
             {
                 try
                 {
-                    Console.WriteLine("Attempting to update the launcher...");
-                    File.Move(tempLauncherPath, pd2LauncherPath, overwrite: true);
-                    Console.WriteLine("Launcher updated successfully.");
+                    Console.WriteLine($"Killing {p.ProcessName} ({p.Id})");
+                    p.Kill();
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Update failed: {ex.Message}");
-                    return;
+                    Console.WriteLine($"Failed to kill {p.ProcessName}: {ex.Message}");
                 }
             }
 
-            // Finally, start the updated launcher
-            StartLauncher(pd2LauncherPath);
+            while (Process.GetProcessesByName(processName).Length > 0)
+            {
+                Console.WriteLine($"Waiting for {processName} to exit...");
+                await Task.Delay(1000);
+            }
         }
 
-        static async Task DownloadFileAsync(string mediaLink, string path)
+        static void TryReplace(string tempPath, string finalPath, string label)
         {
-            using var httpClient = new HttpClient();
-            var response = await httpClient.GetAsync(mediaLink);
-            response.EnsureSuccessStatusCode();
+            if (!File.Exists(tempPath))
+            {
+                Log($"{label} temp file missing. Skipping.");
+                return;
+            }
 
-            await using var fileStream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None);
-            await response.Content.CopyToAsync(fileStream);
+            const int maxRetries = 10;
+            for (int attempt = 1; attempt <= maxRetries; attempt++)
+            {
+                try
+                {
+                    if (File.Exists(finalPath))
+                        File.Delete(finalPath);
 
-            Console.WriteLine("Download complete.");
+                    MoveFileWithCmd(tempPath, finalPath);
+                    Log($"{label} updated successfully.");
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    Log($"[{label}] Retry {attempt}/{maxRetries} failed: {ex.Message}");
+                    Thread.Sleep(1000);
+                }
+            }
+
+            Log($"Failed to update {label} after {maxRetries} attempts.");
         }
 
-        static void StartLauncher(string launcherPath)
+        static void MoveFileWithCmd(string src, string dst)
         {
+            var psi = new ProcessStartInfo
+            {
+                FileName = "cmd.exe",
+                Arguments = $"/c move /Y \"{src}\" \"{dst}\"",
+                UseShellExecute = false,
+                CreateNoWindow = false
+            };
+
+            var proc = Process.Start(psi);
+            proc.WaitForExit();
+
+            if (!File.Exists(dst))
+                throw new IOException($"Move failed via cmd for {Path.GetFileName(dst)}.");
+        }
+
+        static void StartExecutable(string path)
+        {
+            if (!File.Exists(path))
+            {
+                Log($"Executable not found: {Path.GetFileName(path)}");
+                return;
+            }
+
             try
             {
-                Process.Start(launcherPath);
-                Console.WriteLine("Launcher started successfully.");
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = path,
+                    UseShellExecute = true
+                });
+                Log($"Started: {Path.GetFileName(path)}");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Failed to start PD2Launcher: {ex.Message}");
+                Log($"Error starting executable: {ex.Message}");
             }
         }
 
-        static async Task WaitForLauncherToClose()
+        static void Log(string msg)
         {
-            while (Process.GetProcessesByName("PD2Launcher").Length > 0)
-            {
-                Console.WriteLine("Waiting for PD2Launcher to close...");
-                await Task.Delay(1000); // Wait for 1 second before checking again
-            }
+            Console.WriteLine(msg);
+            File.AppendAllText("update.log", $"{DateTime.Now}: {msg}\n");
         }
     }
 }

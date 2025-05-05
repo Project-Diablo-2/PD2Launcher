@@ -24,31 +24,40 @@ namespace PD2Shared.Helpers
 
         public void StartUpdateProcess()
         {
-            string launcherDirectory = Directory.GetCurrentDirectory();
-            string updateUtilityPath = Path.Combine(launcherDirectory, "UpdateUtility.exe");
-            string mainLauncherPath = Path.Combine(launcherDirectory, "PD2Launcher.exe");
-            string tempLauncherPath = Path.Combine(launcherDirectory, "TempLauncher.exe");
-            Debug.WriteLine(File.Exists(updateUtilityPath));
-            Debug.WriteLine($"\n\n\nupdateUtilityPath: {updateUtilityPath}");
-            Debug.WriteLine($"mainLauncherPath: {mainLauncherPath}");
-            Debug.WriteLine($"mainLauncherPath: {mainLauncherPath}");
-            Debug.WriteLine($"tempLauncherPath: {tempLauncherPath}\n\n\n");
+            string dir = Directory.GetCurrentDirectory();
+            string updateUtilityPath = Path.Combine(dir, "UpdateUtility.exe");
 
-            if (File.Exists(updateUtilityPath) && File.Exists(tempLauncherPath))
+            string args = string.Join(" ", new[]
+            {
+                $"\"{Path.Combine(dir, "PD2Launcher.exe")}\"",
+                $"\"{Path.Combine(dir, "TempPD2Launcher.exe")}\"",
+                $"\"{Path.Combine(dir, "PD2Shared.dll")}\"",
+                $"\"{Path.Combine(dir, "TempPD2Shared.dll")}\"",
+                $"\"{Path.Combine(dir, "SteamPD2.exe")}\"",
+                $"\"{Path.Combine(dir, "TempSteamPD2.exe")}\""
+            });
+
+            if (!File.Exists(updateUtilityPath))
+            {
+                Debug.WriteLine("UpdateUtility.exe is missing.");
+                return;
+            }
+
+            try
             {
                 var startInfo = new ProcessStartInfo
                 {
                     FileName = updateUtilityPath,
-                    Arguments = $"\"{mainLauncherPath}\" \"{tempLauncherPath}\"",
-                    UseShellExecute = false,
-                    CreateNoWindow = true,
+                    Arguments = args,
+                    UseShellExecute = true,
+                    CreateNoWindow = true
                 };
 
                 Process.Start(startInfo);
             }
-            else
+            catch (Exception ex)
             {
-                Debug.WriteLine("Update Utility or TempLauncher.exe not found.");
+                Debug.WriteLine($"Failed to start UpdateUtility.exe: {ex.Message}");
             }
         }
 
@@ -86,11 +95,10 @@ namespace PD2Shared.Helpers
             return new List<CloudFileItem>();
         }
 
-        private async Task<bool> DownloadFileAsync(string fileUrl, string destinationPath, IProgress<double> progress)
+        public async Task<bool> DownloadFileAsync(string fileUrl, string destinationPath, IProgress<double> progress)
         {
-            // add retries for s10 Time out bugs from people having shitty internet
             int maxRetries = 3;
-            int delayBetweenRetries = 2000; // 2 seconds
+            int delayBetweenRetries = 2000;
 
             for (int attempt = 1; attempt <= maxRetries; attempt++)
             {
@@ -100,25 +108,28 @@ namespace PD2Shared.Helpers
                     response.EnsureSuccessStatusCode();
 
                     using var stream = await response.Content.ReadAsStreamAsync();
-                    using var fileStream = new FileStream(destinationPath, FileMode.Create, FileAccess.Write, FileShare.None, 8192, true);
 
-                    var buffer = new byte[8192];
-                    int bytesRead;
-                    double totalRead = 0;
-                    long totalBytes = response.Content.Headers.ContentLength ?? -1;
-
-                    while ((bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length)) > 0)
+                    using (var fileStream = new FileStream(destinationPath, FileMode.Create, FileAccess.Write, FileShare.None, 8192, true))
                     {
-                        await fileStream.WriteAsync(buffer, 0, bytesRead);
-                        totalRead += bytesRead;
+                        var buffer = new byte[8192];
+                        int bytesRead;
+                        double totalRead = 0;
+                        long totalBytes = response.Content.Headers.ContentLength ?? -1;
 
-                        if (totalBytes > 0)
+                        while ((bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length)) > 0)
                         {
-                            progress.Report(totalRead / totalBytes);
+                            await fileStream.WriteAsync(buffer, 0, bytesRead);
+                            totalRead += bytesRead;
+
+                            if (totalBytes > 0)
+                                progress.Report(totalRead / totalBytes);
                         }
+
+                        //flushed before exiting
+                        await fileStream.FlushAsync();
                     }
 
-                    return true; // Success
+                    return true;
                 }
                 catch (HttpRequestException ex) when (attempt < maxRetries)
                 {
@@ -327,7 +338,7 @@ namespace PD2Shared.Helpers
            Debug.WriteLine($"Error: {message}");
         }
 
-        private bool IsFileExcluded(string fileName)
+        public bool IsFileExcluded(string fileName)
         {
             return _excludedFiles.Any(excluded =>
                 excluded.EndsWith("/*") && fileName.StartsWith(excluded.TrimEnd('*', '/')) ||
@@ -335,6 +346,27 @@ namespace PD2Shared.Helpers
                 (excluded.Contains("*") && new Regex("^" + Regex.Escape(excluded).Replace("\\*", ".*") + "$").IsMatch(fileName)));
         }
 
+        public async Task<bool> PrepareLauncherUpdateAsync(string launcherMediaLink, string tempPath, IProgress<double> progress)
+        {
+            try
+            {
+                Debug.WriteLine($"Downloading {launcherMediaLink} to {tempPath}...");
+                bool success = await DownloadFileAsync(launcherMediaLink, tempPath, progress);
+                Debug.WriteLine($"Download success: {success}");
+
+                if (!success)
+                {
+                    Debug.WriteLine("Download failed inside PrepareLauncherUpdateAsync.");
+                }
+
+                return success;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($" Failed to prepare launcher update: {ex.Message}");
+                return false;
+            }
+        }
     }
 
     public class CloudFileItem

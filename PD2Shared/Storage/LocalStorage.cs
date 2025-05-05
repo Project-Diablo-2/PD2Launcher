@@ -38,7 +38,7 @@ namespace PD2Shared.Storage
             }
             catch (JsonException ex) // s10 Corrupted json Bug Fix (Lunboks)
             {
-                Debug.WriteLine($"JSON Error: {ex.Message}. Attempting to restore last valid backup.");
+                Debug.WriteLine($"JSON Error: {ex.Message}. Attempting to restore last valid backup..");
 
                 // If a backup exists, use it instead
                 if (File.Exists(backupFilePath))
