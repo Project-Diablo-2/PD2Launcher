@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json;
 
-namespace PD2Launcherv2.Models
+namespace PD2Shared.Models
 {
     public class FilterFile
     {

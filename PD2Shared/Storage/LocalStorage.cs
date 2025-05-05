@@ -1,11 +1,9 @@
 ﻿using Newtonsoft.Json;
-using PD2Launcherv2.Interfaces;
-using PD2Launcherv2.Models;
-using ProjectDiablo2Launcherv2.Models;
+using PD2Shared.Interfaces;
+using PD2Shared.Models;
 using System.Diagnostics;
-using System.IO;
 
-namespace PD2Launcherv2.Storage
+namespace PD2Shared.Storage
 {
     public class LocalStorage : ILocalStorage
     {
@@ -40,7 +38,7 @@ namespace PD2Launcherv2.Storage
             }
             catch (JsonException ex) // s10 Corrupted json Bug Fix (Lunboks)
             {
-                Debug.WriteLine($"JSON Error: {ex.Message}. Attempting to restore last valid backup.");
+                Debug.WriteLine($"JSON Error: {ex.Message}. Attempting to restore last valid backup..");
 
                 // If a backup exists, use it instead
                 if (File.Exists(backupFilePath))
@@ -143,10 +141,59 @@ namespace PD2Launcherv2.Storage
 
         public void InitializeIfNotExists<T>(StorageKey key, T defaultValue) where T : class, new()
         {
-            var existingValue = LoadSection<T>(key);
-            if (existingValue == null)
+            if (!Directory.Exists(_storageDirectory))
             {
-                Update(key, defaultValue);
+                Directory.CreateDirectory(_storageDirectory);
+            }
+
+            string filePath = Path.Combine(_storageDirectory, StorageFileName);
+            string backupFilePath = filePath + ".backup";
+            string tempFilePath = filePath + ".tmp";
+
+            if (!File.Exists(filePath))
+            {
+                try
+                {
+                    var settings = new AllSettings();
+                    switch (key)
+                    {
+                        case StorageKey.LauncherArgs:
+                            settings.LauncherArgs = defaultValue as LauncherArgs ?? new LauncherArgs();
+                            break;
+                        case StorageKey.DdrawOptions:
+                            settings.DdrawOptions = defaultValue as DdrawOptions ?? new DdrawOptions();
+                            break;
+                        case StorageKey.FileUpdateModel:
+                            settings.FileUpdateModel = defaultValue as FileUpdateModel ?? new FileUpdateModel();
+                            break;
+                        case StorageKey.SelectedAuthorAndFilter:
+                            settings.SelectedAuthorAndFilter = defaultValue as SelectedAuthorAndFilter ?? new SelectedAuthorAndFilter();
+                            break;
+                        case StorageKey.Pd2AuthorList:
+                            settings.Pd2AuthorList = defaultValue as Pd2AuthorList ?? new Pd2AuthorList();
+                            break;
+                        case StorageKey.News:
+                            settings.News = defaultValue as News ?? new News();
+                            break;
+                        case StorageKey.WindowPosition:
+                            settings.WindowPosition = defaultValue as WindowPositionModel ?? new WindowPositionModel();
+                            break;
+                        case StorageKey.ResetInfo:
+                            settings.ResetInfo = defaultValue as ResetInfo ?? new ResetInfo();
+                            break;
+                    }
+
+                    string json = JsonConvert.SerializeObject(settings, Formatting.Indented);
+                    File.WriteAllText(tempFilePath, json);
+                    File.Move(tempFilePath, filePath);
+                    File.Copy(filePath, backupFilePath, overwrite: true);
+
+                    Debug.WriteLine($"Initialized missing storage with key: {key}");
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"[Init Storage] Failed: {ex.Message}");
+                }
             }
         }
 

@@ -1,4 +1,4 @@
-﻿namespace ProjectDiablo2Launcherv2.Models
+﻿namespace PD2Shared.Models
 {
     public class LauncherArgs
     {

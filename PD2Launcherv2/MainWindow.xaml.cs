@@ -2,12 +2,11 @@
 using GalaSoft.MvvmLight.Messaging;
 using PD2Launcherv2.Enums;
 using PD2Launcherv2.Helpers;
-using PD2Launcherv2.Interfaces;
+using PD2Shared.Helpers;
+using PD2Shared.Interfaces;
 using PD2Launcherv2.Messages;
-using PD2Launcherv2.Models;
+using PD2Shared.Models;
 using PD2Launcherv2.Views;
-using ProjectDiablo2Launcherv2.Models;
-using System;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
@@ -18,12 +17,13 @@ using System.Windows.Input;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Threading;
+using System.IO;
 
 namespace PD2Launcherv2
 {
     /// <summary>
     /// Interaction logic for MainWindow.xaml
-    /// </summary>
+    /// </summary>.
     public partial class MainWindow : Window, INotifyPropertyChanged
     {
         public event PropertyChangedEventHandler PropertyChanged;
@@ -42,7 +42,7 @@ namespace PD2Launcherv2
                 if (_isBeta != value)
                 {
                     _isBeta = value;
-                    Debug.WriteLine($"IsBeta changing to: {value}");
+                    Debug.WriteLine($"IsBeta changing to.: {value}");
                     BetaVisibility = value ? Visibility.Visible : Visibility.Collapsed;
                     OnPropertyChanged(nameof(IsBeta));
                 }
@@ -167,7 +167,7 @@ namespace PD2Launcherv2
                 }
                 else
                 {
-                    // If no navigation history, just clear the content of the frame.
+                    // If no navigation history, just clear the content of the frame,,
                     MainFrame.Content = null;
                 }
             }
@@ -195,7 +195,7 @@ namespace PD2Launcherv2
             Action onDownloadComplete = ResetUI;
 
             // Trigger the update check and download process
-            await _fileUpdateHelpers.UpdateLauncherCheck(_localStorage, progressHandler, onDownloadComplete);
+            await UpdateLauncherCheck(_localStorage, progressHandler, onDownloadComplete);
         }
 
         private void ClearNavigationStack()
@@ -580,6 +580,164 @@ namespace PD2Launcherv2
                     newsItems.Insert(0, resetNewsItem);
                 }
             }
+        }
+
+        public async Task UpdateLauncherCheck(ILocalStorage _localStorage, IProgress<double> progress, Action onDownloadComplete)
+        {
+            var fileUpdateModel = _localStorage.LoadSection<FileUpdateModel>(StorageKey.FileUpdateModel);
+            var installPath = Directory.GetCurrentDirectory();
+
+            if (fileUpdateModel == null)
+            {
+                return;
+            }
+
+            var cloudFileItems = await _fileUpdateHelpers.GetCloudFileMetadataAsync(fileUpdateModel.Launcher);
+            if (cloudFileItems.Count == 0)
+            {
+                return;
+            }
+
+            var bigFour = new List<string> { "PD2Launcher.exe", "PD2Shared.dll", "SteamPD2.exe", "UpdateUtility.exe" };
+            bool big4NeedsUpdate = false;
+
+            foreach (var fileName in bigFour)
+            {
+                var cloudItem = cloudFileItems.FirstOrDefault(i => i.Name == fileName);
+                if (cloudItem == null)
+                {
+                    continue;
+                }
+
+                var localPath = Path.Combine(installPath, fileName);
+                if (!File.Exists(localPath))
+                {
+                    big4NeedsUpdate = true;
+                    break;
+                }
+
+                if (!_fileUpdateHelpers.CompareCRC(localPath, cloudItem.Crc32c))
+                {
+                    big4NeedsUpdate = true;
+                    break;
+                }
+            }
+
+            if (!big4NeedsUpdate)
+            {
+                //check and update all other cloud files
+                foreach (var cloudItem in cloudFileItems)
+                {
+                    if (bigFour.Contains(cloudItem.Name)) continue;
+                    if (_fileUpdateHelpers.IsFileExcluded(cloudItem.Name)) continue;
+
+                    string localPath = Path.Combine(installPath, cloudItem.Name);
+                    if (!File.Exists(localPath) || !_fileUpdateHelpers.CompareCRC(localPath, cloudItem.Crc32c))
+                    {
+                        bool downloaded = await _fileUpdateHelpers.PrepareLauncherUpdateAsync(cloudItem.MediaLink, localPath, progress);
+                        if (!downloaded)
+                        {
+                            MessageBox.Show($"Failed to download {cloudItem.Name}.", "Update Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                            return;
+                        }
+                    }
+                }
+
+                onDownloadComplete?.Invoke();
+                return;
+            }
+
+            foreach (var fileName in bigFour)
+            {
+                var cloudItem = cloudFileItems.FirstOrDefault(i => i.Name == fileName);
+                if (cloudItem == null)
+                {
+                    continue;
+                }
+
+                string targetName = (fileName == "UpdateUtility.exe") ? fileName : "Temp" + fileName;
+                string path = Path.Combine(installPath, targetName);
+
+                bool downloaded = await _fileUpdateHelpers.PrepareLauncherUpdateAsync(cloudItem.MediaLink, path, progress);
+                if (!downloaded)
+                {
+                    MessageBox.Show($"Failed to download {fileName}.", "Update Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+            }
+
+            foreach (var cloudItem in cloudFileItems)
+            {
+                if (bigFour.Contains(cloudItem.Name)) continue;
+                if (_fileUpdateHelpers.IsFileExcluded(cloudItem.Name))
+                {
+                    continue;
+                }
+
+                string localPath = Path.Combine(installPath, cloudItem.Name);
+                if (!File.Exists(localPath))
+                {
+                }
+                else if (_fileUpdateHelpers.CompareCRC(localPath, cloudItem.Crc32c))
+                {
+                    continue;
+                }
+                else
+                {
+                }
+
+                bool downloaded = await _fileUpdateHelpers.PrepareLauncherUpdateAsync(cloudItem.MediaLink, localPath, progress);
+                if (!downloaded)
+                {
+                    MessageBox.Show($"Failed to download {cloudItem.Name}.", "Update Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+            }
+
+            // Wait till downloaded and flushed
+            var tempFilesToCheck = new List<string> { "PD2Launcher.exe", "PD2Shared.dll", "SteamPD2.exe" };
+
+            foreach (var fileName in tempFilesToCheck)
+            {
+                string tempPath = Path.Combine(installPath, "Temp" + fileName);
+                int retries = 0;
+                const int maxRetries = 10;
+
+                while ((!File.Exists(tempPath) || new FileInfo(tempPath).Length < 32768) && retries++ < maxRetries)
+                {
+                    await Task.Delay(300);
+                }
+            }
+
+            ShowTopmostMessageBox("Launcher update is ready. The app will now close and update...", "Update Ready");
+            _fileUpdateHelpers.StartUpdateProcess();
+
+            await Task.Delay(250);
+            Process.GetCurrentProcess().Kill();
+        }
+
+        public static void ShowTopmostMessageBox(string message, string title)
+        {
+            var topmostWindow = new Window
+            {
+                Width = 0,
+                Height = 0,
+                WindowStyle = WindowStyle.None,
+                ShowInTaskbar = false,
+                Topmost = true,
+                WindowStartupLocation = WindowStartupLocation.Manual,
+                Left = -1000,
+                Top = -1000
+            };
+
+            topmostWindow.Loaded += (s, e) =>
+            {
+                topmostWindow.Hide();
+                MessageBox.Show(topmostWindow, message, title, MessageBoxButton.OK, MessageBoxImage.Information);
+                topmostWindow.Close();
+            };
+
+            topmostWindow.Show();
         }
     }
 }

@@ -9,9 +9,18 @@
     <ApplicationIcon>Resources\Icons\icon.ico</ApplicationIcon>
     <AssemblyName>PD2Launcher</AssemblyName>
     <IsPublishable>True</IsPublishable>
+    <RuntimeIdentifier>win-x86</RuntimeIdentifier>
     <PublishReadyToRun>true</PublishReadyToRun>
     <PublishSingleFile>true</PublishSingleFile>
-    <RuntimeIdentifier>win-x86</RuntimeIdentifier>
+    <Configuration>Release</Configuration>
+    <Platform>Any CPU</Platform>
+    <PublishDir>..\bin\publish\</PublishDir>
+    <PublishProtocol>FileSystem</PublishProtocol>
+    <_TargetId>Folder</_TargetId>
+    <TargetFramework>net6.0-windows</TargetFramework>
+    <SelfContained>false</SelfContained>
+    <_IsPortable>true</_IsPortable>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
   </PropertyGroup>
 
   <ItemGroup>
@@ -27,8 +36,7 @@
     <None Remove="Resources\Images\btn_live.jpg" />
     <None Remove="Resources\Images\btn_more.jpg" />
     <None Remove="Resources\Images\btn_more_pressed.jpg" />
-    <None Remove="Resources\Images\btn_no_updates.jpg" />
-    <None Remove="Resources\Images\btn_no_updates2.jpg" />
+    <None Remove="Resources\Images\btn_no_updates3.jpg" />
     <None Remove="Resources\Images\btn_switch.jpg" />
     <None Remove="Resources\Images\btn_switch_pressed.jpg" />
     <None Remove="Resources\Images\checkbox_checked.png" />
@@ -54,6 +62,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Resource Include="Resources\Images\btn_no_updates3.jpg" />
     <Resource Include="Resources\Images\custom_notif.jpg" />
   </ItemGroup>
 
@@ -85,8 +94,6 @@
     <Resource Include="Resources\Images\btn_live.jpg" />
     <Resource Include="Resources\Images\btn_more.jpg" />
     <Resource Include="Resources\Images\btn_more_pressed.jpg" />
-    <Resource Include="Resources\Images\btn_no_updates.jpg" />
-    <Resource Include="Resources\Images\btn_no_updates2.jpg" />
     <Resource Include="Resources\Images\btn_switch.jpg" />
     <Resource Include="Resources\Images\btn_switch_pressed.jpg" />
     <Resource Include="Resources\Images\checkbox_checked.png" />
@@ -112,6 +119,10 @@
 
   <ItemGroup>
     <Folder Include="Services\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PD2Shared\PD2Shared.csproj" />
   </ItemGroup>
 
 </Project>

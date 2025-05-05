@@ -2,13 +2,11 @@
 using GalaSoft.MvvmLight.Messaging;
 using PD2Launcherv2.Enums;
 using PD2Launcherv2.Helpers;
-using PD2Launcherv2.Interfaces;
+using PD2Shared.Interfaces;
 using PD2Launcherv2.Messages;
-using PD2Launcherv2.Models;
-using ProjectDiablo2Launcherv2.Models;
+using PD2Shared.Models;
 using System.Diagnostics;
 using System.Windows;
-using System.Windows.Input;
 using System.Windows.Threading;
 
 namespace PD2Launcherv2.ViewModels

@@ -1,6 +1,6 @@
 ﻿using PD2Shared.Models;
 
-namespace ProjectDiablo2Launcherv2
+namespace PD2Shared
 {
     public static class Constants
     {

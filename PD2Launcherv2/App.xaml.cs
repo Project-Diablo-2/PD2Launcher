@@ -1,10 +1,10 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using PD2Launcherv2.Helpers;
-using PD2Launcherv2.Interfaces;
-using PD2Launcherv2.Models;
-using PD2Launcherv2.Storage;
+using PD2Shared.Helpers;
+using PD2Shared.Interfaces;
+using PD2Shared.Models;
+using PD2Shared.Storage;
 using PD2Launcherv2.ViewModels;
-using ProjectDiablo2Launcherv2.Models;
 using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
@@ -77,6 +77,7 @@ namespace PD2Launcherv2
         /// <param name="e">Contains the arguments for the startup event.</param>
         protected override async void OnStartup(StartupEventArgs e)
         {
+            CleanUpTempStorageFiles();
             var currentProcessName = Process.GetCurrentProcess().ProcessName;
             if (Process.GetProcessesByName(currentProcessName).Length > 1)
             {
@@ -149,6 +150,26 @@ namespace PD2Launcherv2
         {
             LogException(e.Exception);
             e.Handled = true; // Prevent application from crashing
+        }
+
+        private void CleanUpTempStorageFiles()
+        {
+            string storageDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "AppData");
+
+            if (!Directory.Exists(storageDir))
+                return;
+
+            foreach (var tmpFile in Directory.GetFiles(storageDir, "*.tmp"))
+            {
+                try
+                {
+                    File.Delete(tmpFile);
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Failed to delete temp file: {ex.Message}");
+                }
+            }
         }
 
         private void LogException(Exception ex)

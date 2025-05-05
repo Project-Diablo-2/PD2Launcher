@@ -1,15 +1,15 @@
 
 using Newtonsoft.Json;
-using PD2Launcherv2.Interfaces;
-using PD2Launcherv2.Models;
+using PD2Shared.Interfaces;
+using PD2Shared.Models;
 using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
 
-namespace PD2Launcherv2.Helpers
+namespace PD2Shared.Helpers
 {
-    public class FilterHelpers
+    public class FilterHelpers : IFilterHelpers
     {
         private readonly HttpClient _httpClient;
         private readonly ILocalStorage _localStorage;
@@ -80,7 +80,7 @@ namespace PD2Launcherv2.Helpers
             Debug.WriteLine("\nstart FetchAndStoreFilterAuthorsAsync");
             try
             {
-                var storedData = _localStorage.LoadSection<Pd2AuthorList>(StorageKey.Pd2AuthorList);
+                var storedData = _localStorage.LoadSection<Pd2AuthorList>(PD2Shared.Models.StorageKey.Pd2AuthorList);
                 var eTag = storedData?.StorageETag ?? string.Empty;
 
                 var response = await GetAsync(FilterAuthorUrl, eTag);
@@ -111,7 +111,7 @@ namespace PD2Launcherv2.Helpers
                         // Serialize eTaggedData to JSON for debugging
                         string eTaggedDataJson = JsonConvert.SerializeObject(eTaggedData, Formatting.Indented);
 
-                        _localStorage.Update(StorageKey.Pd2AuthorList, eTaggedData);
+                        _localStorage.Update(PD2Shared.Models.StorageKey.Pd2AuthorList, eTaggedData);
                         Console.WriteLine("Filter authors data updated.");
                     }
                 }
@@ -197,7 +197,7 @@ namespace PD2Launcherv2.Helpers
 
         public bool ForceInstallLocalFilters()
         {
-            var storedData = _localStorage.LoadSection<SelectedAuthorAndFilter>(StorageKey.SelectedAuthorAndFilter);
+            var storedData = _localStorage.LoadSection<SelectedAuthorAndFilter>(PD2Shared.Models.StorageKey.SelectedAuthorAndFilter);
             string installPath = Directory.GetCurrentDirectory();
             string filtersBasePath = Path.Combine(installPath, "filters");
             string localPath = Path.Combine(filtersBasePath, "local");

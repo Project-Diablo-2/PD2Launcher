@@ -1,9 +1,8 @@
 ﻿
 using MadMilkman.Ini;
-using PD2Launcherv2.Interfaces;
-using PD2Launcherv2.Models;
+using PD2Shared.Interfaces;
+using PD2Shared.Models;
 using ProjectDiablo2Launcherv2;
-using ProjectDiablo2Launcherv2.Models;
 using System.Diagnostics;
 using System.IO;
 

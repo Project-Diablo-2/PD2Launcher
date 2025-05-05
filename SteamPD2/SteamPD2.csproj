@@ -1,22 +1,35 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net6.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <IsPublishable>True</IsPublishable>
-    <PublishSingleFile>true</PublishSingleFile>
-    <PublishReadyToRun>true</PublishReadyToRun>
+    <ApplicationIcon>Resources\Icons\icon.ico</ApplicationIcon>
     <RuntimeIdentifier>win-x86</RuntimeIdentifier>
-    <SelfContained>false</SelfContained>
     <DebugSymbols>false</DebugSymbols>
+    <IsPublishable>True</IsPublishable>
+    <PublishReadyToRun>true</PublishReadyToRun>
+    <PublishSingleFile>true</PublishSingleFile>
     <Configuration>Release</Configuration>
     <Platform>Any CPU</Platform>
     <PublishDir>..\bin\publish\</PublishDir>
     <PublishProtocol>FileSystem</PublishProtocol>
     <_TargetId>Folder</_TargetId>
+    <SelfContained>false</SelfContained>
     <_IsPortable>true</_IsPortable>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="Resources\Icons\icon.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Resources\Icons\icon.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PD2Shared\PD2Shared.csproj" />
+  </ItemGroup>
+
 </Project>

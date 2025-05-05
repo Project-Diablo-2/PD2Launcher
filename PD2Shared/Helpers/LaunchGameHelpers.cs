@@ -1,29 +1,26 @@
 ﻿
-using PD2Launcherv2.Interfaces;
-using PD2Launcherv2.Models;
-using ProjectDiablo2Launcherv2.Models;
+using PD2Shared.Interfaces;
+using PD2Shared.Models;
 using System.Diagnostics;
 using System.IO;
 using System.Windows;
 
-namespace PD2Launcherv2.Helpers
+namespace PD2Shared.Helpers
 {
-    public class LaunchGameHelpers
+    public class LaunchGameHelpers : ILaunchGameHelpers
     {
         public void LaunchGame(ILocalStorage localStorage)
         {
-            var fileUpdateModel = localStorage.LoadSection<FileUpdateModel>(StorageKey.FileUpdateModel);
+            var fileUpdateModel = localStorage.LoadSection<FileUpdateModel>(PD2Shared.Models.StorageKey.FileUpdateModel);
 
             string diabloIIExePath = Path.Combine(Directory.GetCurrentDirectory(), "Game.exe");
             if (!File.Exists(diabloIIExePath))
             {
                 Debug.WriteLine("Game.exe not found.");
-                // Update UI or notify user accordingly
-                MessageBox.Show("could not find game.exe", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
-            LauncherArgs launcherArgs = localStorage.LoadSection<LauncherArgs>(StorageKey.LauncherArgs);
+            LauncherArgs launcherArgs = localStorage.LoadSection<LauncherArgs>(PD2Shared.Models.StorageKey.LauncherArgs);
 
             string args = ConstructLaunchArguments(launcherArgs);
 
