@@ -47,7 +47,24 @@ namespace SteamPD2
             var cloudFiles = await fileUpdateHelpers.GetCloudFileMetadataAsync(fileUpdateModel.Launcher);
             var installPath = Directory.GetCurrentDirectory();
             var bigFour = new[] { "PD2Launcher.exe", "PD2Shared.dll", "SteamPD2.exe", "UpdateUtility.exe" };
+            Log("Checking non-Big4 launcher files...");
+            foreach (var cloudItem in cloudFiles)
+            {
+                if (bigFour.Contains(cloudItem.Name)) continue;
+                if (fileUpdateHelpers.IsFileExcluded(cloudItem.Name)) continue;
 
+                var localPath = Path.Combine(installPath, cloudItem.Name);
+                if (!File.Exists(localPath) || !fileUpdateHelpers.CompareCRC(localPath, cloudItem.Crc32c))
+                {
+                    Log($"Updating {cloudItem.Name}...");
+                    bool downloaded = await fileUpdateHelpers.PrepareLauncherUpdateAsync(cloudItem.MediaLink, localPath, null);
+                    if (!downloaded)
+                    {
+                        Log($"Failed to download {cloudItem.Name}. Exiting.");
+                        return;
+                    }
+                }
+            }
             bool needsBig4Update = bigFour.Any(name =>
             {
                 var cloudItem = cloudFiles.FirstOrDefault(i => i.Name == name);

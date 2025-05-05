@@ -625,6 +625,24 @@ namespace PD2Launcherv2
 
             if (!big4NeedsUpdate)
             {
+                //check and update all other cloud files
+                foreach (var cloudItem in cloudFileItems)
+                {
+                    if (bigFour.Contains(cloudItem.Name)) continue;
+                    if (_fileUpdateHelpers.IsFileExcluded(cloudItem.Name)) continue;
+
+                    string localPath = Path.Combine(installPath, cloudItem.Name);
+                    if (!File.Exists(localPath) || !_fileUpdateHelpers.CompareCRC(localPath, cloudItem.Crc32c))
+                    {
+                        bool downloaded = await _fileUpdateHelpers.PrepareLauncherUpdateAsync(cloudItem.MediaLink, localPath, progress);
+                        if (!downloaded)
+                        {
+                            MessageBox.Show($"Failed to download {cloudItem.Name}.", "Update Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                            return;
+                        }
+                    }
+                }
+
                 onDownloadComplete?.Invoke();
                 return;
             }
