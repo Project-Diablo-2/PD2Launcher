@@ -6,11 +6,11 @@ namespace UpdateUtility
     {
         static async Task Main(string[] args)
         {
-            Console.WriteLine("-=-=-= Update Utility Started =-=-=-");
+            Log("-=-=-= Update Utility Started =-=-=-");
 
             if (args.Length < 6 || args.Length > 7)
             {
-                Console.WriteLine("Expected 6 or 7 args: PD2Launcher TempPD2Launcher PD2Shared TempPD2Shared SteamPD2 TempSteamPD2 [ExeToStart]");
+                Log("Expected 6 or 7 args: PD2Launcher TempPD2Launcher PD2Shared TempPD2Shared SteamPD2 TempSteamPD2 [ExeToStart]");
                 return;
             }
 
@@ -31,7 +31,7 @@ namespace UpdateUtility
             TryReplace(tempShared, sharedDll, "PD2Shared.dll");
             TryReplace(tempSteam, steamLauncher, "SteamPD2");
 
-            Console.WriteLine($"Starting: {Path.GetFileName(exeToStart)}");
+            Log($"Starting: {Path.GetFileName(exeToStart)}");
             StartExecutable(exeToStart);
         }
 
@@ -42,18 +42,18 @@ namespace UpdateUtility
             {
                 try
                 {
-                    Console.WriteLine($"Killing {p.ProcessName} ({p.Id})");
+                    Log($"Killing {p.ProcessName} ({p.Id})");
                     p.Kill();
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Failed to kill {p.ProcessName}: {ex.Message}");
+                    Log($"Failed to kill {p.ProcessName}: {ex.Message}");
                 }
             }
 
             while (Process.GetProcessesByName(processName).Length > 0)
             {
-                Console.WriteLine($"Waiting for {processName} to exit..");
+                Log($"Waiting for {processName} to exit..");
                 await Task.Delay(1000);
             }
         }
@@ -130,7 +130,7 @@ namespace UpdateUtility
 
         static void Log(string msg)
         {
-            Console.WriteLine(msg);
+            //Console.WriteLine(msg);
             File.AppendAllText("update.log", $"{DateTime.Now}: {msg}\n");
         }
     }

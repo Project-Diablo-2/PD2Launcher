@@ -37,14 +37,58 @@ namespace SteamPD2
             var launchGameHelpers = new LaunchGameHelpers();
 
             var fileUpdateModel = localStorage.LoadSection<FileUpdateModel>(StorageKey.FileUpdateModel);
-            Console.WriteLine($"Cloud path: {fileUpdateModel?.Launcher}");
+            Log($"Cloud path: {fileUpdateModel?.Launcher}");
             if (fileUpdateModel == null)
             {
                 Log("FileUpdateModel missing. Exiting.");
                 return;
             }
 
-            var cloudFiles = await fileUpdateHelpers.GetCloudFileMetadataAsync(fileUpdateModel.Launcher);
+            List<CloudFileItem> cloudFiles = new();
+            try
+            {
+                cloudFiles = await fileUpdateHelpers.GetCloudFileMetadataAsync(fileUpdateModel.Launcher);
+            }
+            catch (Exception ex)
+            {
+                Log("Unable to reach update server. Proceeding in offline mode.");
+                Log($"Error: {ex.Message}");
+
+                // Skip all update logic and go straight to launch
+                try
+                {
+                    Log("Launching game (offline mode)...");
+                    launchGameHelpers.LaunchGame(localStorage);
+                }
+                catch (Exception launchEx)
+                {
+                    Log($"Game launch failed: {launchEx.Message}");
+                }
+
+                return;
+            }
+            try
+            {
+                cloudFiles = await fileUpdateHelpers.GetCloudFileMetadataAsync(fileUpdateModel.Launcher);
+            }
+            catch (Exception ex)
+            {
+                Log("Unable to reach update server. Proceeding in offline mode.");
+                Log($"Error: {ex.Message}");
+
+                // Skip all update logic and go straight to launch
+                try
+                {
+                    Log("Launching game (offline mode)...");
+                    launchGameHelpers.LaunchGame(localStorage);
+                }
+                catch (Exception launchEx)
+                {
+                    Log($"Game launch failed: {launchEx.Message}");
+                }
+
+                return;
+            }
             var installPath = Directory.GetCurrentDirectory();
             var bigFour = new[] { "PD2Launcher.exe", "PD2Shared.dll", "SteamPD2.exe", "UpdateUtility.exe" };
             Log("Checking non-Big4 launcher files...");
@@ -127,7 +171,7 @@ namespace SteamPD2
 
         static void Log(string msg)
         {
-            Console.WriteLine(msg);
+            //Console.WriteLine(msg);
             try
             {
                 File.AppendAllText(logPath, $"[{DateTime.Now}] {msg}\n");
