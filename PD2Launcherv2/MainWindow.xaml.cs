@@ -155,8 +155,6 @@ namespace PD2Launcherv2
                 storeUpdate.Client = "https://pd2-client-files.projectdiablo2.com/";
                 _localStorage.Update(StorageKey.FileUpdateModel, storeUpdate);
             }
-
-
             // Don't try to update launcher in debug mode
             //TEST
 #if DEBUG

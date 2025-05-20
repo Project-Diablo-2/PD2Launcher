@@ -37,6 +37,11 @@ namespace SteamPD2
             var launchGameHelpers = new LaunchGameHelpers();
 
             var fileUpdateModel = localStorage.LoadSection<FileUpdateModel>(StorageKey.FileUpdateModel);
+            if (fileUpdateModel != null && fileUpdateModel.Client.TrimEnd('/') == "https://storage.googleapis.com/storage/v1/b/pd2-client-files/o")
+            {
+                fileUpdateModel.Client = "https://pd2-client-files.projectdiablo2.com/";
+                localStorage.Update(StorageKey.FileUpdateModel, fileUpdateModel);
+            }
             Log($"Cloud path: {fileUpdateModel?.Launcher}");
             if (fileUpdateModel == null)
             {
