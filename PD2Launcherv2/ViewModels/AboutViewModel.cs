@@ -85,7 +85,7 @@ namespace PD2Launcherv2.ViewModels
             Debug.WriteLine("\nstart BetaBucketAssign");
             var fileUpdateModel = new FileUpdateModel
             {
-                Client = "https://storage.googleapis.com/storage/v1/b/pd2-beta-client-files/o",
+                Client = "https://pd2-alpha-client-files.projectdiablo2.com/",
                 Launcher = "https://storage.googleapis.com/storage/v1/b/pd2-launcher-update/o",
                 FilePath = "Beta"
             };

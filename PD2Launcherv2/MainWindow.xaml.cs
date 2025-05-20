@@ -33,6 +33,7 @@ namespace PD2Launcherv2
         private readonly LaunchGameHelpers _launchGameHelpers;
         private readonly NewsHelpers _newsHelpers;
         private readonly DDrawHelpers _dDrawHelpers;
+        private readonly GameFileUpdateHelpers _gameFileUpdater;
         private bool _isBeta;
         public bool IsBeta
         {
@@ -126,6 +127,7 @@ namespace PD2Launcherv2
             _filterHelpers = (FilterHelpers)App.ServiceProvider.GetService(typeof(FilterHelpers));
             _launchGameHelpers = (LaunchGameHelpers)App.ServiceProvider.GetService(typeof(LaunchGameHelpers));
             _newsHelpers = (NewsHelpers)App.ServiceProvider.GetService(typeof(NewsHelpers));
+            _gameFileUpdater = (GameFileUpdateHelpers)App.ServiceProvider.GetService(typeof(GameFileUpdateHelpers));
             LoadAndUpdateDDrawOptions();
             InitWindow();
             EnsureWindowIsVisible();
@@ -151,7 +153,7 @@ namespace PD2Launcherv2
             //TEST
 #if DEBUG
 #else
-            CheckForUpdates();
+            //CheckForUpdates();
 #endif
         }
         private void OnNavigationMessageReceived(NavigationMessage message)
@@ -238,7 +240,7 @@ namespace PD2Launcherv2
                 {
                     try
                     {
-                        await _fileUpdateHelpers.UpdateFilesCheck(_localStorage, new Progress<double>(UpdateProgress), () => { });
+                        await _gameFileUpdater.UpdateFromShaMetadataAsync(_localStorage, new Progress<double>(UpdateProgress), () => { });
                         Debug.WriteLine("made it out of the update check");
                         await _fileUpdateHelpers.SyncFilesFromEnvToRoot(_localStorage);
                     }
