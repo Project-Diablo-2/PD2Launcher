@@ -16,7 +16,7 @@
 
         <Button x:Name="CloseButton" Style="{StaticResource CloseButtonStyle}" FontFamily="{StaticResource BlizzHeavy}" Command="{Binding CloseCommand}" 
             FontSize="25" Content="X" />
-        <TextBlock x:Name="About" Text="Environment Switching" FontSize="25"  
+        <TextBlock x:Name="About" Text="Switch Environment" FontSize="25"  
                    VerticalAlignment="Top" HorizontalAlignment="Center" Margin="0,20,0,0"
                    Foreground="{StaticResource GoldBrush}" FontFamily="{StaticResource BlizzHeavy}">
         </TextBlock>
