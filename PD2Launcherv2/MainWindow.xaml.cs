@@ -144,7 +144,7 @@ namespace PD2Launcherv2
             // Load or setup default file update model
             FileUpdateModel storeUpdate = _localStorage.LoadSection<FileUpdateModel>(StorageKey.FileUpdateModel) ?? new FileUpdateModel
             {
-                Client = "https://storage.googleapis.com/storage/v1/b/pd2-client-files/o",
+                Client = "https://pd2-client-files.projectdiablo2.com/",
                 Launcher = "https://storage.googleapis.com/storage/v1/b/pd2-launcher-update/o",
                 FilePath = "Live"
             };
@@ -153,7 +153,7 @@ namespace PD2Launcherv2
             //TEST
 #if DEBUG
 #else
-            //CheckForUpdates();
+            CheckForUpdates();
 #endif
         }
         private void OnNavigationMessageReceived(NavigationMessage message)

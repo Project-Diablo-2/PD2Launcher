@@ -70,7 +70,7 @@ namespace PD2Launcherv2.ViewModels
             Debug.WriteLine("\nstart ProdBucketAssign");
             var fileUpdateModel = new FileUpdateModel
             {
-                Client = "https://storage.googleapis.com/storage/v1/b/pd2-client-files/o",
+                Client = "https://pd2-client-files.projectdiablo2.com/",
                 Launcher = "https://storage.googleapis.com/storage/v1/b/pd2-launcher-update/o",
                 FilePath = "Live"
             };
@@ -85,7 +85,7 @@ namespace PD2Launcherv2.ViewModels
             Debug.WriteLine("\nstart BetaBucketAssign");
             var fileUpdateModel = new FileUpdateModel
             {
-                Client = "https://pd2-alpha-client-files.projectdiablo2.com/",
+                Client = "https://pd2-beta-client-files.projectdiablo2.com/",
                 Launcher = "https://storage.googleapis.com/storage/v1/b/pd2-launcher-update/o",
                 FilePath = "Beta"
             };

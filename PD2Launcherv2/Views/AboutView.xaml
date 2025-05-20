@@ -28,8 +28,10 @@
             <Button Content="LIVE" Style="{StaticResource CustomColorChangeButton}" Width="200" Height="35" Margin="5"
             Foreground="Black" Command="{Binding ProdBucket}" FontFamily="{StaticResource BlizzHeavy}" />
 
-            <Button Content="BETA" Style="{StaticResource CustomColorChangeButton}" Width="200" Height="35" Margin="5"
+            <Button Content="Closed BETA" Style="{StaticResource CustomColorChangeButton}" Width="200" Height="35" Margin="5"
             Foreground="Black" Command="{Binding BetaBucket}" FontFamily="{StaticResource BlizzHeavy}" />
+            <TextBlock Text="Only Closed beta, for open beta select LIVE" FontSize="10" FontFamily="{StaticResource BlizzHeavy}" 
+            Foreground="{StaticResource GoldBrush}" TextAlignment="Center" Margin="0,0,0,10"/>
         </StackPanel>
 
         <Button Content="!" x:Name="CustomUnlockButton" 
