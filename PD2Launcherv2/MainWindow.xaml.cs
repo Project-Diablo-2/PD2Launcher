@@ -158,11 +158,11 @@ namespace PD2Launcherv2
 
 
             // Don't try to update launcher in debug mode
-            //TEST
-#if DEBUG
-#else
-            CheckForUpdates();
-#endif
+            // TEST
+            #if DEBUG
+            #else
+                CheckForUpdates();
+            #endif
         }
         private void OnNavigationMessageReceived(NavigationMessage message)
         {
@@ -423,7 +423,7 @@ namespace PD2Launcherv2
             // Fetch and store the latest news from the repository
             await _newsHelpers.FetchAndStoreNewsAsync(_localStorage);
             // Fetch and store the latest reset info from the repository
-            await _newsHelpers.FetchResetInfoAsync(_localStorage); 
+            await _newsHelpers.FetchResetInfoAsync(_localStorage);
 
             // Load the stored news
             News theNews = _localStorage.LoadSection<News>(StorageKey.News);
@@ -602,9 +602,22 @@ namespace PD2Launcherv2
                 return;
             }
 
-            var cloudFileItems = await _fileUpdateHelpers.GetCloudFileMetadataAsync(fileUpdateModel.Launcher);
-            if (cloudFileItems.Count == 0)
+            // Initialise it as empty to satisfy dependencies
+            var cloudFileItems = new List<CloudFileItem>();
+
+            try
             {
+                cloudFileItems = await _fileUpdateHelpers.GetCloudFileMetadataAsync(fileUpdateModel.Launcher);
+                if (cloudFileItems == null || cloudFileItems.Count == 0)
+                {
+                    onDownloadComplete?.Invoke();
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Unhandled exception: {ex}");
+                onDownloadComplete?.Invoke();
                 return;
             }
 

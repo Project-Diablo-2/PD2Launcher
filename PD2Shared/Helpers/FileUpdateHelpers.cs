@@ -105,15 +105,23 @@ namespace PD2Shared.Helpers
                         Crc32c = i.Crc32c,
                     }).ToList() ?? new List<CloudFileItem>();
                 }
-                catch (HttpRequestException ex) when (attempt < maxRetries)
+                catch (Exception ex) when (ex is HttpRequestException || ex is TaskCanceledException)
                 {
-                    Debug.WriteLine($"[Retry {attempt}/{maxRetries}] HTTP request failed: {ex.Message}. Retrying...");
-                    await Task.Delay(delayBetweenRetries);
+                    if (attempt < maxRetries)
+                    {
+                        Debug.WriteLine($"[Retry {attempt}/{maxRetries}] HTTP request failed: {ex.Message}. Retrying...");
+                        await Task.Delay(delayBetweenRetries);
+                    }
+                    else
+                    {
+                        Debug.WriteLine($"All {maxRetries} retries failed. Throwing exception.");
+                        throw;
+                    }
                 }
             }
 
-            Debug.WriteLine("Failed to retrieve cloud metadata after retries.");
-            return new List<CloudFileItem>();
+            // Should never reach here due to throw
+            throw new InvalidOperationException("Unexpected retry loop exit.");
         }
 
         public async Task<bool> DownloadFileAsync(string fileUrl, string destinationPath, IProgress<double> progress)
