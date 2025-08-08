@@ -594,6 +594,11 @@ namespace PD2Launcherv2
 
         public async Task UpdateLauncherCheck(ILocalStorage _localStorage, IProgress<double> progress, Action onDownloadComplete)
         {
+            if (IsDisableUpdates)
+            {
+                onDownloadComplete?.Invoke();
+                return;
+            }
             var fileUpdateModel = _localStorage.LoadSection<FileUpdateModel>(StorageKey.FileUpdateModel);
             var installPath = Directory.GetCurrentDirectory();
 
@@ -617,6 +622,7 @@ namespace PD2Launcherv2
             catch (Exception ex)
             {
                 Debug.WriteLine($"Unhandled exception: {ex}");
+                UpdatesNotificationVisibility = Visibility.Visible;
                 onDownloadComplete?.Invoke();
                 return;
             }
