@@ -125,6 +125,8 @@ namespace PD2Launcherv2
                     }
 
                     launchGameHelpers.LaunchGame(localStorage);
+                    Shutdown();
+                    return;
                 }
                 catch (Exception ex)
                 {
