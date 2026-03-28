@@ -36,6 +36,14 @@ namespace SteamPD2
             var filterHelpers = new FilterHelpers(new HttpClient(), localStorage);
             var launchGameHelpers = new LaunchGameHelpers();
 
+            var launcherArgs = localStorage.LoadSection<LauncherArgs>(StorageKey.LauncherArgs);
+            if (launcherArgs?.disableAutoUpdate == true)
+            {
+                Log("disableAutoUpdate is enabled. Skipping all update checks.");
+                launchGameHelpers.LaunchGame(localStorage);
+                return;
+            }
+
             var fileUpdateModel = localStorage.LoadSection<FileUpdateModel>(StorageKey.FileUpdateModel);
             if (fileUpdateModel != null && fileUpdateModel.Client.TrimEnd('/') == "https://storage.googleapis.com/storage/v1/b/pd2-client-files/o")
             {
