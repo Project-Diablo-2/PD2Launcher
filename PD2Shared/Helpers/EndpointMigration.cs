@@ -22,6 +22,8 @@ namespace PD2Shared.Helpers
             var client = incoming.ClientBaseUrl;
             if (string.Equals(client, "https://storage.googleapis.com/storage/v1/b/pd2-client-files/o", StringComparison.OrdinalIgnoreCase))
                 client = "https://pd2-client-files.projectdiablo2.com/";
+            else if (string.Equals(client, "https://storage.googleapis.com/storage/v1/b/pd2-beta-client-files/o", StringComparison.OrdinalIgnoreCase))
+                client = "https://pd2-beta-client-files.projectdiablo2.com/";
 
             var launcher = incoming.LauncherApiBase;
             var env = string.IsNullOrWhiteSpace(incoming.EnvironmentName)
