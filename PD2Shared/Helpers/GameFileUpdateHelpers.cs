@@ -15,7 +15,7 @@ namespace PD2Shared.Helpers
         public GameFileUpdateHelpers(HttpClient httpClient)
         {
             _httpClient = httpClient;
-            _httpClient.Timeout = TimeSpan.FromMinutes(3);
+            _httpClient.Timeout = TimeSpan.FromMinutes(30);
         }
 
         public async Task UpdateFromShaMetadataAsync(ILocalStorage localStorage, IProgress<double> progress, Action onComplete)
@@ -101,10 +101,10 @@ namespace PD2Shared.Helpers
 
         private async Task DownloadFileAsync(string url, string destination)
         {
-            using var response = await _httpClient.GetAsync(url);
+            using var response = await _httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
             response.EnsureSuccessStatusCode();
             await using var stream = await response.Content.ReadAsStreamAsync();
-            await using var fs = new FileStream(destination, FileMode.Create, FileAccess.Write);
+            await using var fs = new FileStream(destination, FileMode.Create, FileAccess.Write, FileShare.None, 8192, true);
             await stream.CopyToAsync(fs);
         }
     }
