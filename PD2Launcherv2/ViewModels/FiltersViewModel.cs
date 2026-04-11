@@ -1,5 +1,5 @@
-﻿using GalaSoft.MvvmLight.Command;
-using GalaSoft.MvvmLight.Messaging;
+﻿using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
 using Microsoft.Web.WebView2.Wpf;
 using PD2Launcherv2.Enums;
 using PD2Launcherv2.Helpers;
@@ -368,7 +368,7 @@ namespace PD2Launcherv2.ViewModels
 
         private void CloseView()
         {
-            Messenger.Default.Send(new NavigationMessage { Action = NavigationAction.GoBack });
+            WeakReferenceMessenger.Default.Send(new NavigationMessage { Action = NavigationAction.GoBack });
         }
 
         private async void SaveFilterExecute()
@@ -383,7 +383,7 @@ namespace PD2Launcherv2.ViewModels
                     // Update storage to reflect the new or updated filter
                     SaveFilterToStorage();
                     Debug.WriteLine("Filter applied");
-                    Messenger.Default.Send(new NavigationMessage { Action = NavigationAction.GoBack });
+                    WeakReferenceMessenger.Default.Send(new NavigationMessage { Action = NavigationAction.GoBack });
                 }
                 else
                 {

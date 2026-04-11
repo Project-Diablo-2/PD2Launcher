@@ -1,5 +1,5 @@
-using GalaSoft.MvvmLight.Command;
-using GalaSoft.MvvmLight.Messaging;
+using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
 using PD2Launcherv2.Enums;
 using PD2Launcherv2.Helpers;
 using PD2Shared.Interfaces;
@@ -515,7 +515,7 @@ namespace PD2Launcherv2.ViewModels
                     OnPropertyChanged();
                     var fileUpdateMode = _localStorage.LoadSection<FileUpdateModel>(StorageKey.FileUpdateModel);
                     bool amIBeta = fileUpdateMode.FilePath.Equals("Beta");
-                    Messenger.Default.Send(new ConfigurationChangeMessage { IsDisableUpdates = value, IsBeta = amIBeta });
+                    WeakReferenceMessenger.Default.Send(new ConfigurationChangeMessage { IsDisableUpdates = value, IsBeta = amIBeta });
                 }
             }
         }
@@ -775,7 +775,7 @@ namespace PD2Launcherv2.ViewModels
             _ddrawHelpers.WriteDdrawOptions();
 
             // Sending a message to anyone who's listening for NavigationMessage
-            Messenger.Default.Send(new NavigationMessage { Action = NavigationAction.GoBack });
+            WeakReferenceMessenger.Default.Send(new NavigationMessage { Action = NavigationAction.GoBack });
         }
     }
 }

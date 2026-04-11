@@ -1,5 +1,5 @@
-﻿using GalaSoft.MvvmLight.Command;
-using GalaSoft.MvvmLight.Messaging;
+﻿using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
 using PD2Launcherv2.Enums;
 using PD2Launcherv2.Helpers;
 using PD2Shared.Interfaces;
@@ -76,9 +76,9 @@ namespace PD2Launcherv2.ViewModels
             };
             _localStorage.Update(StorageKey.FileUpdateModel, fileUpdateModel);
             var launcherArgs = _localStorage.LoadSection<LauncherArgs>(StorageKey.LauncherArgs);
-            Messenger.Default.Send(new ConfigurationChangeMessage { IsBeta = false , IsCustom = false, IsDisableUpdates = launcherArgs.disableAutoUpdate});
+            WeakReferenceMessenger.Default.Send(new ConfigurationChangeMessage { IsBeta = false , IsCustom = false, IsDisableUpdates = launcherArgs.disableAutoUpdate});
             Debug.WriteLine("end ProdBucketAssign\n");
-            Messenger.Default.Send(new NavigationMessage { Action = NavigationAction.GoBack });
+            WeakReferenceMessenger.Default.Send(new NavigationMessage { Action = NavigationAction.GoBack });
         }
         public void BetaBucketAssign()
         {
@@ -92,9 +92,9 @@ namespace PD2Launcherv2.ViewModels
             _localStorage.Update(StorageKey.FileUpdateModel, fileUpdateModel);
             var launcherArgs = _localStorage.LoadSection<LauncherArgs>(StorageKey.LauncherArgs);
 
-            Messenger.Default.Send(new ConfigurationChangeMessage { IsBeta = true , IsCustom = false , IsDisableUpdates = launcherArgs.disableAutoUpdate });
+            WeakReferenceMessenger.Default.Send(new ConfigurationChangeMessage { IsBeta = true , IsCustom = false , IsDisableUpdates = launcherArgs.disableAutoUpdate });
             Debug.WriteLine("end BetaBucketAssign \n");
-            Messenger.Default.Send(new NavigationMessage { Action = NavigationAction.GoBack });
+            WeakReferenceMessenger.Default.Send(new NavigationMessage { Action = NavigationAction.GoBack });
         }
 
         private void CustomBucketAssign()
@@ -123,20 +123,20 @@ namespace PD2Launcherv2.ViewModels
 
             var launcherArgs = _localStorage.LoadSection<LauncherArgs>(StorageKey.LauncherArgs);
 
-            Messenger.Default.Send(new ConfigurationChangeMessage
+            WeakReferenceMessenger.Default.Send(new ConfigurationChangeMessage
             {
                 IsBeta = false,
                 IsCustom = false,
                 IsDisableUpdates = launcherArgs.disableAutoUpdate
             });
-            Messenger.Default.Send(new ConfigurationChangeMessage { IsBeta = false, IsCustom = true, IsDisableUpdates = launcherArgs.disableAutoUpdate });
+            WeakReferenceMessenger.Default.Send(new ConfigurationChangeMessage { IsBeta = false, IsCustom = true, IsDisableUpdates = launcherArgs.disableAutoUpdate });
             Debug.WriteLine("end SetCustomEnvironment\n");
-            Messenger.Default.Send(new NavigationMessage { Action = NavigationAction.GoBack });
+            WeakReferenceMessenger.Default.Send(new NavigationMessage { Action = NavigationAction.GoBack });
         }
 
         private void CloseView()
         {
-            Messenger.Default.Send(new NavigationMessage { Action = NavigationAction.GoBack });
+            WeakReferenceMessenger.Default.Send(new NavigationMessage { Action = NavigationAction.GoBack });
         }
     }
 }

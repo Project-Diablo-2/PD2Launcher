@@ -1,5 +1,5 @@
-﻿using GalaSoft.MvvmLight.Command;
-using GalaSoft.MvvmLight.Messaging;
+﻿using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
 using PD2Launcherv2.Enums;
 using PD2Launcherv2.Helpers;
 using PD2Shared.Helpers;
@@ -135,8 +135,8 @@ namespace PD2Launcherv2
             LoadConfiguration();
 
             // Registering to receive NavigationMessage
-            Messenger.Default.Register<NavigationMessage>(this, OnNavigationMessageReceived);
-            Messenger.Default.Register<ConfigurationChangeMessage>(this, OnConfigurationChanged);
+            WeakReferenceMessenger.Default.Register<NavigationMessage>(this, (recipient, message) => OnNavigationMessageReceived(message));
+            WeakReferenceMessenger.Default.Register<ConfigurationChangeMessage>(this, (recipient, message) => OnConfigurationChanged(message));
             DataContext = this;
 
             this.Closed += MainWindow_Closed;
