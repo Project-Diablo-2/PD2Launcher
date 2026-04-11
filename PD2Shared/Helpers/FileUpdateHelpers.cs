@@ -19,7 +19,7 @@ namespace PD2Shared.Helpers
         public FileUpdateHelpers(HttpClient httpClient)
         {
             _httpClient = httpClient;
-            _httpClient.Timeout = TimeSpan.FromMinutes(3);
+            _httpClient.Timeout = TimeSpan.FromMinutes(30);
         }
 
         public void StartUpdateProcess()
@@ -215,13 +215,12 @@ namespace PD2Shared.Helpers
         {
             try
             {
-                var response = await _httpClient.GetAsync(mediaLink);
+                using var response = await _httpClient.GetAsync(mediaLink, HttpCompletionOption.ResponseHeadersRead);
                 if (response.IsSuccessStatusCode)
                 {
-                    using (var fs = new FileStream(localFilePath, FileMode.Create, FileAccess.Write, FileShare.None))
-                    {
-                        await response.Content.CopyToAsync(fs);
-                    }
+                    await using var stream = await response.Content.ReadAsStreamAsync();
+                    await using var fs = new FileStream(localFilePath, FileMode.Create, FileAccess.Write, FileShare.None, 8192, true);
+                    await stream.CopyToAsync(fs);
                 }
             }
             catch (HttpRequestException ex)
