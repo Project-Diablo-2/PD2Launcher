@@ -30,5 +30,14 @@ namespace PD2Shared.Models
 
         [JsonProperty("type")]
         public string Type { get; set; } = "null";
+
+        [JsonIgnore]
+        public string DisplayName { get; set; } = "null";
+
+        [JsonIgnore]
+        public string Description { get; set; } = string.Empty;
+
+        [JsonIgnore]
+        public string FilterId { get; set; } = string.Empty;
     }
 }

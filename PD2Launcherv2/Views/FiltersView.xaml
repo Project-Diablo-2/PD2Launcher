@@ -1,4 +1,4 @@
-<Page x:Class="PD2Launcherv2.Views.FiltersView"
+﻿<Page x:Class="PD2Launcherv2.Views.FiltersView"
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
@@ -15,6 +15,8 @@
     <Page.Resources>
         <converters:NullToBooleanConverter x:Key="NullToBooleanConverter"/>
         <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+        <converters:NullIfWhiteSpaceToNullConverter
+            x:Key="NullIfWhiteSpaceToNullConverter"/>
     </Page.Resources>
 
     <Grid>
@@ -62,10 +64,9 @@
             <TextBlock Text="{Binding SelectedAuthor.Name}" FontSize="18" HorizontalAlignment="Center" Margin="0,0,0,10" FontFamily="{StaticResource BlizzMedium}" Foreground="{StaticResource GoldLighterBrush}"/>
             <ListBox x:Name="FiltersListBox"
                      ItemsSource="{Binding FiltersList}"
-                     ItemContainerStyle="{StaticResource CustomListBoxItemStyle}"
                      FontFamily="{StaticResource BlizzLight}"
                      FontSize="16"
-                     DisplayMemberPath="Name"
+                     DisplayMemberPath="DisplayName"
                      FocusVisualStyle="{x:Null}"
                      Background="Black"
                      BorderBrush="{StaticResource GoldBrush}"
@@ -73,6 +74,14 @@
                      Height="400" Width="300"
                      SelectedItem="{Binding SelectedFilter, Mode=TwoWay}"
                      ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                <ListBox.ItemContainerStyle>
+                    <Style TargetType="ListBoxItem"
+                           BasedOn="{StaticResource CustomListBoxItemStyle}">
+                        <Setter Property="ToolTip"
+                                Value="{Binding Description,
+                                                Converter={StaticResource NullIfWhiteSpaceToNullConverter}}"/>
+                    </Style>
+                </ListBox.ItemContainerStyle>
                 <ListBox.Resources>
                     <Style TargetType="{x:Type ScrollBar}" BasedOn="{StaticResource CustomVerticalScrollBar}"/>
                 </ListBox.Resources>

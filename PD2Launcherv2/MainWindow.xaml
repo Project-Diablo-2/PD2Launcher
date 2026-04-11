@@ -66,7 +66,7 @@
 
                 <!-- Wiki -->
                 <TextBlock Margin="5" FontSize="20">
-                      <Hyperlink NavigateUri="https://wiki.projectdiablo2.com" RequestNavigate="Hyperlink_RequestNavigate">
+                      <Hyperlink NavigateUri="https://wiki.projectdiablo2.com/wiki/Main_Page" RequestNavigate="Hyperlink_RequestNavigate">
                          <TextBlock Text="Wiki" Style="{StaticResource HyperlinkMouseOverStyle}" FontFamily="{StaticResource BlizzMedium}"/>
                       </Hyperlink>
                 </TextBlock>
@@ -224,7 +224,7 @@
                 </StackPanel>
 
                 <!-- Version -->
-                <TextBlock Text="v 2.11.3"
+                <TextBlock Text="v 2.13.0"
                    HorizontalAlignment="Right"
                    Margin="0,0,0,0"
                    Foreground="{StaticResource SoftWhite}"

@@ -1,4 +1,3 @@
-
 using Newtonsoft.Json;
 using PD2Shared.Interfaces;
 using PD2Shared.Models;
@@ -20,7 +19,9 @@ namespace PD2Shared.Helpers
             _httpClient = httpClient;
             _localStorage = localStorage;
         }
-        public async Task<string> FetchFilterContentAsyncForFilterBird(string downloadUrl)
+
+        public async Task<string> FetchFilterContentAsyncForFilterBird(
+            string downloadUrl)
         {
             try
             {
@@ -35,15 +36,19 @@ namespace PD2Shared.Helpers
             }
         }
 
-        private async Task<HttpResponseMessage> GetAsync(string url, string eTag = null)
+        private async Task<HttpResponseMessage> GetAsync(
+            string url,
+            string eTag = null)
         {
             var request = new HttpRequestMessage(HttpMethod.Get, url);
 
             if (!string.IsNullOrWhiteSpace(eTag))
             {
-                request.Headers.IfNoneMatch.Add(new EntityTagHeaderValue($"\"{eTag}\""));
+                request.Headers.IfNoneMatch.Add(
+                    new EntityTagHeaderValue($"\"{eTag}\""));
                 request.Headers.Add("User-Agent", "PD2Launcherv2");
             }
+
             return await _httpClient.SendAsync(request);
         }
 
@@ -54,6 +59,157 @@ namespace PD2Shared.Helpers
             return await _httpClient.SendAsync(request);
         }
 
+        private bool IsBetaLauncher()
+        {
+            var fileUpdateModel = _localStorage.LoadSection<FileUpdateModel>(
+                StorageKey.FileUpdateModel);
+
+            return string.Equals(
+                fileUpdateModel?.FilePath,
+                "Beta",
+                StringComparison.OrdinalIgnoreCase);
+        }
+
+        private async Task<FilterDefinitionsDocument?> FetchFilterDefinitionsAsync(
+            string downloadUrl)
+        {
+            try
+            {
+                var response = await _httpClient.GetAsync(downloadUrl);
+                response.EnsureSuccessStatusCode();
+
+                var content = await response.Content.ReadAsStringAsync();
+                return JsonConvert.DeserializeObject<FilterDefinitionsDocument>(
+                    content);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(
+                    $"Error fetching filter definitions: {ex.Message}");
+                return null;
+            }
+        }
+
+        private List<FilterFile> BuildLegacyFilterList(List<FilterFile> filterFiles)
+        {
+            foreach (var file in filterFiles)
+            {
+                file.DisplayName = file.Name;
+                file.Description = string.Empty;
+                file.FilterId = string.Empty;
+            }
+
+            return filterFiles;
+        }
+
+        private async Task<List<FilterFile>> BuildFilterListAsync(
+            List<FilterFile> repoFiles)
+        {
+            var filterFiles = repoFiles
+                .Where(f => f.Name.EndsWith(
+                    ".filter",
+                    StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            var legacyList = BuildLegacyFilterList(filterFiles);
+
+            var definitionFile = repoFiles.FirstOrDefault(f =>
+                f.Name.Equals(
+                    "filter_definitions.json",
+                    StringComparison.OrdinalIgnoreCase));
+
+            if (definitionFile == null)
+            {
+                return legacyList;
+            }
+
+            var definitions = await FetchFilterDefinitionsAsync(
+                definitionFile.DownloadUrl);
+
+            if (definitions?.FilterInfo == null ||
+                definitions.FilterInfo.Count == 0)
+            {
+                return legacyList;
+            }
+
+            bool isBeta = IsBetaLauncher();
+            var mappedFilters = new List<FilterFile>();
+
+            foreach (var pair in definitions.FilterInfo)
+            {
+                string id = pair.Key;
+                var entry = pair.Value;
+                string resolvedFileName = entry.ResolveFileName(isBeta);
+
+                var actualFile = filterFiles.FirstOrDefault(f =>
+                    f.Name.Equals(
+                        resolvedFileName,
+                        StringComparison.OrdinalIgnoreCase));
+
+                if (actualFile == null)
+                {
+                    Debug.WriteLine(
+                        $"Definition '{id}' could not find file " +
+                        $"'{resolvedFileName}'.");
+                    continue;
+                }
+
+                actualFile.FilterId = id;
+                actualFile.DisplayName = string.IsNullOrWhiteSpace(
+                    entry.DisplayName)
+                    ? actualFile.Name
+                    : entry.DisplayName;
+                actualFile.Description = entry.Description ?? string.Empty;
+
+                mappedFilters.Add(actualFile);
+            }
+
+            return mappedFilters.Count > 0 ? mappedFilters : legacyList;
+        }
+
+        private async Task<FilterFile?> ResolveRemoteFilterAsync(
+            SelectedAuthorAndFilter selected)
+        {
+            var filterListResponse = await GetFilterListAsync(
+                selected.selectedAuthor.Url);
+            if (!filterListResponse.IsSuccessStatusCode)
+            {
+                return null;
+            }
+
+            var filterListContent =
+                await filterListResponse.Content.ReadAsStringAsync();
+            var repoFiles = JsonConvert.DeserializeObject<List<FilterFile>>(
+                                filterListContent) ?? new List<FilterFile>();
+
+            var filters = await BuildFilterListAsync(repoFiles);
+
+            if (!string.IsNullOrWhiteSpace(selected.selectedFilterId))
+            {
+                var byId = filters.FirstOrDefault(f =>
+                    string.Equals(
+                        f.FilterId,
+                        selected.selectedFilterId,
+                        StringComparison.OrdinalIgnoreCase));
+
+                if (byId != null)
+                {
+                    return byId;
+                }
+            }
+
+            if (selected.selectedFilter != null)
+            {
+                return filters.FirstOrDefault(f =>
+                    string.Equals(
+                        f.Name,
+                        selected.selectedFilter.Name,
+                        StringComparison.OrdinalIgnoreCase));
+            }
+
+            return null;
+        }
+
         public async Task<List<FilterFile>> FetchFilterContentsAsync(string url)
         {
             try
@@ -62,9 +218,10 @@ namespace PD2Shared.Helpers
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
-                    var allFiles = JsonConvert.DeserializeObject<List<FilterFile>>(content);
-                    var filterFiles = allFiles.Where(f => f.Name.EndsWith(".filter")).ToList();
-                    return filterFiles;
+                    var allFiles = JsonConvert.DeserializeObject<List<FilterFile>>(
+                        content) ?? new List<FilterFile>();
+
+                    return await BuildFilterListAsync(allFiles);
                 }
             }
             catch (Exception ex)
@@ -80,24 +237,27 @@ namespace PD2Shared.Helpers
             Debug.WriteLine("\nstart FetchAndStoreFilterAuthorsAsync");
             try
             {
-                var storedData = _localStorage.LoadSection<Pd2AuthorList>(PD2Shared.Models.StorageKey.Pd2AuthorList);
+                var storedData = _localStorage.LoadSection<Pd2AuthorList>(
+                    PD2Shared.Models.StorageKey.Pd2AuthorList);
                 var eTag = storedData?.StorageETag ?? string.Empty;
 
                 var response = await GetAsync(FilterAuthorUrl, eTag);
 
                 if (response.StatusCode == System.Net.HttpStatusCode.NotModified)
                 {
-                    // Data has not changed; no need to update
-                    Console.WriteLine($"Code 304? {System.Net.HttpStatusCode.NotModified}");
+                    Console.WriteLine(
+                        $"Code 304? {System.Net.HttpStatusCode.NotModified}");
                     Console.WriteLine("Filter authors data not changed.");
                     return;
                 }
 
-                Debug.WriteLine($"response.IsSuccessStatusCode {response.IsSuccessStatusCode}");
+                Debug.WriteLine(
+                    $"response.IsSuccessStatusCode {response.IsSuccessStatusCode}");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
-                    var authors = JsonConvert.DeserializeObject<List<FilterAuthor>>(content);
+                    var authors = JsonConvert.DeserializeObject<List<FilterAuthor>>(
+                        content);
                     var eTagValue = response.Headers.ETag?.Tag?.Trim('"');
                     Debug.WriteLine($"eTagValue {eTagValue}");
                     if (authors != null)
@@ -108,10 +268,9 @@ namespace PD2Shared.Helpers
                             StorageAuthorList = authors
                         };
 
-                        // Serialize eTaggedData to JSON for debugging
-                        string eTaggedDataJson = JsonConvert.SerializeObject(eTaggedData, Formatting.Indented);
-
-                        _localStorage.Update(PD2Shared.Models.StorageKey.Pd2AuthorList, eTaggedData);
+                        _localStorage.Update(
+                            PD2Shared.Models.StorageKey.Pd2AuthorList,
+                            eTaggedData);
                         Console.WriteLine("Filter authors data updated.");
                     }
                 }
@@ -124,32 +283,44 @@ namespace PD2Shared.Helpers
             {
                 Console.WriteLine($"Error fetching filter authors: {ex.Message}");
             }
+
             Debug.WriteLine("end FetchAndStoreFilterAuthorsAsync\n");
         }
 
-        // This method handles the actual file download
-        private async Task<bool> DownloadFileAsync(string downloadUrl, string targetPath)
+        private async Task<bool> DownloadFileAsync(
+            string downloadUrl,
+            string targetPath)
         {
-            Debug.WriteLine($"DownloadFileAsync start");
+            Debug.WriteLine("DownloadFileAsync start");
             try
             {
-                var response = await _httpClient.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead);
+                var response = await _httpClient.GetAsync(
+                    downloadUrl,
+                    HttpCompletionOption.ResponseHeadersRead);
                 response.EnsureSuccessStatusCode();
 
-                using (var fileStream = new FileStream(targetPath, FileMode.Create, FileAccess.Write, FileShare.None))
+                using (var fileStream = new FileStream(
+                    targetPath,
+                    FileMode.Create,
+                    FileAccess.Write,
+                    FileShare.None))
                 {
                     await response.Content.CopyToAsync(fileStream);
                 }
 
                 return true;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return false;
             }
         }
 
-        public async Task<bool> ApplyLootFilterAsync(string author, string filterName, string downloadUrl, bool updateNeeded)
+        public async Task<bool> ApplyLootFilterAsync(
+            string author,
+            string filterName,
+            string downloadUrl,
+            bool updateNeeded)
         {
             try
             {
@@ -159,7 +330,6 @@ namespace PD2Shared.Helpers
                 string onlinePath = Path.Combine(filtersBasePath, "online");
                 string defaultFilterPath = Path.Combine(installPath, "loot.filter");
 
-                // Ensure necessary directories exist
                 Directory.CreateDirectory(localPath);
                 Directory.CreateDirectory(onlinePath);
                 string targetFilterPath;
@@ -170,19 +340,20 @@ namespace PD2Shared.Helpers
                 else
                 {
                     targetFilterPath = Path.Combine(onlinePath, filterName);
-                    // Directly download the filter file for online sources if it does not exist
                     if (updateNeeded || !File.Exists(targetFilterPath))
                     {
-                        bool downloadSuccess = await DownloadFileAsync(downloadUrl, targetFilterPath);
+                        bool downloadSuccess = await DownloadFileAsync(
+                            downloadUrl,
+                            targetFilterPath);
                         if (!downloadSuccess)
                         {
-                            Debug.WriteLine("Failed to download or update the filter file.");
+                            Debug.WriteLine(
+                                "Failed to download or update the filter file.");
                             return false;
                         }
                     }
                 }
 
-                // Create or update the loot filter
                 File.Copy(targetFilterPath, defaultFilterPath, true);
 
                 Debug.WriteLine("Filter applied successfully.");
@@ -197,19 +368,23 @@ namespace PD2Shared.Helpers
 
         public bool ForceInstallLocalFilters()
         {
-            var storedData = _localStorage.LoadSection<SelectedAuthorAndFilter>(PD2Shared.Models.StorageKey.SelectedAuthorAndFilter);
+            var storedData = _localStorage.LoadSection<SelectedAuthorAndFilter>(
+                PD2Shared.Models.StorageKey.SelectedAuthorAndFilter);
             string installPath = Directory.GetCurrentDirectory();
             string filtersBasePath = Path.Combine(installPath, "filters");
             string localPath = Path.Combine(filtersBasePath, "local");
             string defaultFilterPath = Path.Combine(installPath, "loot.filter");
 
             string targetFilterPath;
-            if (storedData.selectedAuthor.Author.Equals("Local Filter", StringComparison.OrdinalIgnoreCase))
+            if (storedData.selectedAuthor.Author.Equals(
+                "Local Filter",
+                StringComparison.OrdinalIgnoreCase))
             {
                 Debug.WriteLine($"{storedData.selectedFilter.Name}");
                 Debug.WriteLine($"{localPath}");
-                targetFilterPath = Path.Combine(localPath, storedData.selectedFilter.Name);
-                //update the local filter
+                targetFilterPath = Path.Combine(
+                    localPath,
+                    storedData.selectedFilter.Name);
                 File.Copy(targetFilterPath, defaultFilterPath, true);
                 return true;
             }
@@ -219,26 +394,18 @@ namespace PD2Shared.Helpers
             }
         }
 
-        public async Task<bool> CheckAndUpdateFilterAsync(SelectedAuthorAndFilter selected)
+        public async Task<bool> CheckAndUpdateFilterAsync(
+            SelectedAuthorAndFilter selected)
         {
             Debug.WriteLine("\n\nCheckAndUpdateFilterAsync start");
             try
             {
                 if (selected.selectedAuthor.Name == "Local Filter")
                 {
-                    // For local filters, no need to check for updates.
                     return ForceInstallLocalFilters();
                 }
 
-                var filterListResponse = await GetFilterListAsync(selected.selectedAuthor.Url);
-                if (!filterListResponse.IsSuccessStatusCode)
-                {
-                    return false;
-                }
-
-                var filterListContent = await filterListResponse.Content.ReadAsStringAsync();
-                var filters = JsonConvert.DeserializeObject<List<FilterFile>>(filterListContent);
-                var targetFilter = filters?.FirstOrDefault(f => f.Name.Equals(selected.selectedFilter.Name, StringComparison.OrdinalIgnoreCase));
+                var targetFilter = await ResolveRemoteFilterAsync(selected);
 
                 if (targetFilter == null)
                 {
@@ -246,17 +413,41 @@ namespace PD2Shared.Helpers
                     return false;
                 }
 
-                bool updateNeeded = !targetFilter.Sha.Equals(selected.selectedFilter.Sha, StringComparison.OrdinalIgnoreCase);
+                bool updateNeeded = !string.Equals(
+                    targetFilter.Sha,
+                    selected.selectedFilter?.Sha,
+                    StringComparison.OrdinalIgnoreCase);
+
+                bool success;
                 if (updateNeeded)
                 {
-                    // Directly apply the filter if an update is needed.
-                    return await ApplyLootFilterAsync(selected.selectedAuthor.Name, selected.selectedFilter.Name, targetFilter.DownloadUrl, true);
+                    success = await ApplyLootFilterAsync(
+                        selected.selectedAuthor.Name,
+                        targetFilter.Name,
+                        targetFilter.DownloadUrl,
+                        true);
                 }
                 else
                 {
                     Debug.WriteLine("The filter is up-to-date.");
-                    return true;
+                    success = true;
                 }
+
+                if (success)
+                {
+                    selected.selectedFilter = targetFilter;
+
+                    if (!string.IsNullOrWhiteSpace(targetFilter.FilterId))
+                    {
+                        selected.selectedFilterId = targetFilter.FilterId;
+                    }
+
+                    _localStorage.Update(
+                        StorageKey.SelectedAuthorAndFilter,
+                        selected);
+                }
+
+                return success;
             }
             catch (Exception ex)
             {
