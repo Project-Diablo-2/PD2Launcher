@@ -91,7 +91,7 @@ namespace PD2Shared.Helpers
             {
                 try
                 {
-                    var response = await _httpClient.GetAsync(cloudFileBucket);
+                    using var response = await _httpClient.GetAsync(cloudFileBucket);
                     response.EnsureSuccessStatusCode();
 
                     var content = await response.Content.ReadAsStringAsync();
@@ -193,11 +193,23 @@ namespace PD2Shared.Helpers
         public uint Crc32CFromFile(string filePath)
         {
             using var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read);
-            using var memoryStream = new MemoryStream();
-            fileStream.CopyTo(memoryStream);
-            byte[] fileBytes = memoryStream.ToArray();
-
-            return Crc32CAlgorithm.Compute(fileBytes);
+            byte[] buffer = new byte[8192];
+            uint crc = 0;
+            bool first = true;
+            int bytesRead;
+            while ((bytesRead = fileStream.Read(buffer, 0, buffer.Length)) > 0)
+            {
+                if (first)
+                {
+                    crc = Crc32CAlgorithm.Compute(buffer, 0, bytesRead);
+                    first = false;
+                }
+                else
+                {
+                    crc = Crc32CAlgorithm.Append(crc, buffer, 0, bytesRead);
+                }
+            }
+            return crc;
         }
 
         /**
@@ -265,19 +277,13 @@ namespace PD2Shared.Helpers
                     bool shouldExclude = IsFileExcluded(cloudFile.Name);
                     bool localFileExists = File.Exists(localFilePath);
 
-                    if (shouldExclude && !localFileExists)
-                    {
-                        await TryDownloadFileAsync(cloudFile.MediaLink, localFilePath, 3, progress);
-                    }
-                    else if (!shouldExclude && (!localFileExists || !CompareCRC(localFilePath, cloudFile.Crc32c)))
-                    {
-                        // For non-excluded files, download if they don't exist or CRC check fails.
-                        await TryDownloadFileAsync(cloudFile.MediaLink, localFilePath, 3, progress);
-                    }
+                    bool needsInitialCopy = shouldExclude && !localFileExists;
+                    bool needsUpdate = !shouldExclude && (!localFileExists || !CompareCRC(localFilePath, cloudFile.Crc32c));
 
-                    // For copying logic, ensure it's consistent with the conditions above.
-                    if ((shouldExclude && !localFileExists) || (!shouldExclude && (!localFileExists || !CompareCRC(localFilePath, cloudFile.Crc32c))))
+                    if (needsInitialCopy || needsUpdate)
                     {
+                        await TryDownloadFileAsync(cloudFile.MediaLink, localFilePath, 3, progress);
+
                         var destinationFilePath = Path.Combine(installPath, normalizedPath);
                         var destinationDirectory = Path.GetDirectoryName(destinationFilePath);
                         if (destinationDirectory != null && !Directory.Exists(destinationDirectory))
