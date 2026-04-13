@@ -407,10 +407,15 @@ namespace PD2Launcherv2
         {
             IsBeta = message.IsBeta;
             OnPropertyChanged(nameof(IsBeta));
+
             IsCustom = message.IsCustom;
             OnPropertyChanged(nameof(IsCustom));
-            // Use property to control visibility
-            UpdatesNotificationVisibility = message.IsDisableUpdates ? Visibility.Visible : Visibility.Collapsed;
+
+            IsDisableUpdates = message.IsDisableUpdates;
+
+            UpdatesNotificationVisibility = message.IsDisableUpdates
+                ? Visibility.Visible
+                : Visibility.Collapsed;
         }
 
         private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
@@ -592,9 +597,9 @@ namespace PD2Launcherv2
             }
         }
 
-        public async Task UpdateLauncherCheck(ILocalStorage _localStorage, IProgress<double> progress, Action onDownloadComplete)
+        public async Task UpdateLauncherCheck(ILocalStorage _localStorage, IProgress<double> progress, Action onDownloadComplete, bool forceUpdate = false)
         {
-            if (IsDisableUpdates)
+            if (!forceUpdate && IsDisableUpdates)
             {
                 onDownloadComplete?.Invoke();
                 return;
@@ -628,7 +633,7 @@ namespace PD2Launcherv2
             }
 
             var bigFour = new List<string> { "PD2Launcher.exe", "PD2Shared.dll", "SteamPD2.exe", "UpdateUtility.exe" };
-            bool big4NeedsUpdate = false;
+            bool big4NeedsUpdate = forceUpdate;
 
             foreach (var fileName in bigFour)
             {
@@ -652,7 +657,7 @@ namespace PD2Launcherv2
                 }
             }
 
-            if (!big4NeedsUpdate)
+            if (!big4NeedsUpdate && !forceUpdate)
             {
                 //check and update all other cloud files
                 foreach (var cloudItem in cloudFileItems)
