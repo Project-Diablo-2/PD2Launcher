@@ -79,6 +79,7 @@ namespace PD2Launcherv2
         protected override async void OnStartup(StartupEventArgs e)
         {
             CleanUpTempStorageFiles();
+            WineDxvkHelpers.EnsureDxvkConfigForLauncher(AppContext.BaseDirectory);
             var currentProcessName = Process.GetCurrentProcess().ProcessName;
             if (Process.GetProcessesByName(currentProcessName).Length > 1)
             {

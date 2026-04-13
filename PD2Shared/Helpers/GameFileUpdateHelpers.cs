@@ -18,11 +18,7 @@ namespace PD2Shared.Helpers
             _httpClient.Timeout = TimeSpan.FromMinutes(30);
         }
 
-        public async Task UpdateFromShaMetadataAsync(
-            ILocalStorage localStorage,
-            IProgress<double> progress,
-            Action onComplete,
-            bool forceUpdate = false)
+        public async Task UpdateFromShaMetadataAsync(ILocalStorage localStorage, IProgress<double> progress, Action onComplete)
         {
             FileUpdateModel fileUpdateModel = localStorage.LoadSection<FileUpdateModel>(PD2Shared.Models.StorageKey.FileUpdateModel);
             string installPath = Directory.GetCurrentDirectory();
@@ -40,7 +36,7 @@ namespace PD2Shared.Helpers
                 response.EnsureSuccessStatusCode();
                 string remoteMetadataContent = await response.Content.ReadAsStringAsync();
 
-                if (!forceUpdate && localMetadataContent != null && localMetadataContent == remoteMetadataContent)
+                if (localMetadataContent != null && localMetadataContent == remoteMetadataContent)
                 {
                     Debug.WriteLine("Metadata unchanged. Skipping SHA1 update.");
                     return;
