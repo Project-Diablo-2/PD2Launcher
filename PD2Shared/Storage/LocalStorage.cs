@@ -124,23 +124,28 @@ namespace PD2Shared.Storage
             }
         }
 
-        public T LoadSection<T>(StorageKey key) where T : class
+        public T? LoadSectionIfExists<T>(StorageKey key) where T : class
         {
             var settings = Load();
 
             return key switch
             {
-                StorageKey.LauncherArgs => settings.LauncherArgs as T ?? Activator.CreateInstance<T>(),
-                StorageKey.LauncherOptions => settings.LauncherOptions as T ?? Activator.CreateInstance<T>(),
-                StorageKey.DdrawOptions => settings.DdrawOptions as T ?? Activator.CreateInstance<T>(),
-                StorageKey.FileUpdateModel => settings.FileUpdateModel as T ?? Activator.CreateInstance<T>(),
-                StorageKey.Pd2AuthorList => settings.Pd2AuthorList as T ?? Activator.CreateInstance<T>(),
-                StorageKey.SelectedAuthorAndFilter => settings.SelectedAuthorAndFilter as T ?? Activator.CreateInstance<T>(),
-                StorageKey.WindowPosition => settings.WindowPosition as T ?? Activator.CreateInstance<T>(),
-                StorageKey.News => settings.News as T ?? Activator.CreateInstance<T>(),
-                StorageKey.ResetInfo => settings.ResetInfo as T ?? Activator.CreateInstance<T>(),
-                _ => Activator.CreateInstance<T>()
+                StorageKey.LauncherArgs => settings.LauncherArgs as T,
+                StorageKey.LauncherOptions => settings.LauncherOptions as T,
+                StorageKey.DdrawOptions => settings.DdrawOptions as T,
+                StorageKey.FileUpdateModel => settings.FileUpdateModel as T,
+                StorageKey.Pd2AuthorList => settings.Pd2AuthorList as T,
+                StorageKey.SelectedAuthorAndFilter => settings.SelectedAuthorAndFilter as T,
+                StorageKey.WindowPosition => settings.WindowPosition as T,
+                StorageKey.News => settings.News as T,
+                StorageKey.ResetInfo => settings.ResetInfo as T,
+                _ => default
             };
+        }
+
+        public T LoadSection<T>(StorageKey key) where T : class, new()
+        {
+            return LoadSectionIfExists<T>(key) ?? new();
         }
 
         public void InitializeIfNotExists<T>(StorageKey key, T defaultValue) where T : class, new()
