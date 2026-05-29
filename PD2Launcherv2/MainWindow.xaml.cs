@@ -19,6 +19,8 @@ using System.Windows.Navigation;
 using System.Windows.Threading;
 using System.IO;
 using PD2Launcherv2.Utils;
+using PD2Shared.Logging;
+using static PD2Shared.Logging.LoggingStatic;
 using PD2Shared.Utils;
 
 namespace PD2Launcherv2
@@ -623,6 +625,28 @@ namespace PD2Launcherv2
                         });
 
                         localStorageUpdated = true;
+                    }
+
+                    if (MsgBox.Info(
+                        "Would you like to apply PD2-specific Wine configuration?\n" +
+                        "(This can be re-adjusted in the Options menu at any time).",
+                        MessageBoxButton.YesNo,
+                        MessageBoxResult.Yes) == MessageBoxResult.Yes)
+                    {
+                        try
+                        {
+                            Wine.ApplyWineConfiguration();
+                        }
+                        catch (Wine.WineException ex)
+                        {
+                            L.CallerError(ex.InnerException, ex.Message);
+                            MsgBox.Exception(ex, "Failed to apply Wine configuration:");
+                        }
+                        catch (Exception ex)
+                        {
+                            L.CallerError(ex, "Failed to apply Wine configuration.");
+                            MsgBox.Exception(ex, "Failed to apply Wine configuration:");
+                        }
                     }
                 }
 
