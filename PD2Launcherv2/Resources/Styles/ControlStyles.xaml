@@ -355,7 +355,7 @@
             <Setter.Value>
                 <ControlTemplate TargetType="CheckBox">
                     <StackPanel Orientation="Horizontal">
-                        <Image Name="CheckImage" Width="20" Height="20" Source="pack://application:,,,/Resources/Images/checkbox_unchecked.png"/>
+                        <Image Name="CheckImage" Source="pack://application:,,,/Resources/Images/checkbox_unchecked.png"/>
                         <ContentPresenter Margin="5,0,0,0" VerticalAlignment="Center"/>
                     </StackPanel>
                     <ControlTemplate.Triggers>
@@ -374,7 +374,7 @@
             <Setter.Value>
                 <ControlTemplate TargetType="RadioButton">
                     <StackPanel Orientation="Horizontal">
-                        <Image Name="RadioImage" Width="20" Height="20"
+                        <Image Name="RadioImage"
                            Source="pack://application:,,,/Resources/Images/checkbox_unchecked.png"/>
                         <ContentPresenter Margin="5,0,0,0" VerticalAlignment="Center"/>
                     </StackPanel>
