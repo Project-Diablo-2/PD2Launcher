@@ -61,6 +61,22 @@
         </Setter>
     </Style>
 
+    <!-- Attempt near pixel-perfect rendering of images, text blocks and everything in-between -->
+    <Style TargetType="Window" x:Key="PixelPerfectWindow">
+        <!-- This seems to work when set on the Window level (https://learn.microsoft.com/en-us/dotnet/api/system.windows.uielement.snapstodevicepixels#remarks) -->
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+        <!-- ...and this too (https://learn.microsoft.com/en-us/dotnet/api/system.windows.frameworkelement.uselayoutrounding#remarks) -->
+        <Setter Property="UseLayoutRounding" Value="True"/>
+        <Setter Property="RenderOptions.BitmapScalingMode" Value="NearestNeighbor"/>
+    </Style>
+
+    <!-- Force images to retain their original size -->
+    <Style TargetType="Image">
+        <Setter Property="Stretch" Value="None"/>
+        <Setter Property="Width" Value="{Binding Source.PixelWidth, RelativeSource={RelativeSource Self}}"/>
+        <Setter Property="Height" Value="{Binding Source.PixelHeight, RelativeSource={RelativeSource Self}}"/>
+    </Style>
+
     <Style TargetType="{x:Type local:CustomImageButton}">
         <Setter Property="Template">
             <Setter.Value>
