@@ -187,6 +187,7 @@ namespace PD2Launcherv2
             }
 
             this.Title = MsgBox.DefaultDialogTitle;
+            this.VersionText.Text = PD2Shared.Constants.VersionString;
 
             // Don't try to update launcher in debug mode
             // TEST
