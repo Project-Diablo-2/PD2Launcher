@@ -109,14 +109,17 @@
     </Style>
 
     <Style x:Key="ImageFillProgressBarStyle" TargetType="{x:Type ProgressBar}">
-        <Setter Property="Foreground" Value="{StaticResource GoldBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource GoldDarkerBrush}" />
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ProgressBar">
                     <Grid>
-                        <Rectangle Name="PART_Track" Opacity="0.5" Fill="Transparent"/>
-                        <Rectangle Name="PART_Indicator" HorizontalAlignment="Left" Fill="{TemplateBinding Foreground}"/>
+                        <Rectangle Name="PART_Track" Fill="{TemplateBinding Background}" />
+                        <Rectangle Name="PART_Indicator"
+                                   HorizontalAlignment="Left"
+                                   Opacity="0.5"
+                                   Fill="{TemplateBinding Foreground}" />
                         <Grid>
                             <Image Source="pack://application:,,,/Resources/Images/empty_button.png" Stretch="Fill"/>
                         </Grid>
