@@ -110,7 +110,7 @@ namespace PD2Shared.Storage
                 if (IsValidJson(json))
                 {
                     File.WriteAllText(tempFilePath, json);
-                    File.Replace(tempFilePath, filePath, null);
+                    File.Move(tempFilePath, filePath, overwrite: true);
                     Debug.WriteLine("Settings updated successfully.");
                 }
                 else
