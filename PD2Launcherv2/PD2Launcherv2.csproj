@@ -59,6 +59,7 @@
     <None Remove="Resources\Images\thin_next.jpg" />
     <None Remove="Resources\Images\thin_prev.jpg" />
     <None Remove="Resources\Images\updating_disabled.jpg" />
+    <None Remove="Resources\Images\winelogo16.png" />
   </ItemGroup>
 
   <ItemGroup>
@@ -115,6 +116,7 @@
     <Resource Include="Resources\Images\thin_next.jpg" />
     <Resource Include="Resources\Images\thin_prev.jpg" />
     <Resource Include="Resources\Images\updating_disabled.jpg" />
+    <Resource Include="Resources\Images\winelogo16.png" />
   </ItemGroup>
 
   <ItemGroup>

@@ -18,6 +18,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Threading;
 using System.IO;
+using PD2Shared.Utils;
 
 namespace PD2Launcherv2
 {
@@ -188,6 +189,15 @@ namespace PD2Launcherv2
 
             this.Title = MsgBox.DefaultDialogTitle;
             this.VersionText.Text = PD2Shared.Constants.VersionString;
+
+            if (Wine.IsRunningUnderWine)
+            {
+                WineLogo16Image.ToolTip = Wine.WineVersion != null ? $"Wine {Wine.WineVersion} detected" : "Undetermined Wine version";
+            }
+            else
+            {
+                WineLogo16Image.Visibility = Visibility.Hidden;
+            }
 
             // Don't try to update launcher in debug mode
             // TEST

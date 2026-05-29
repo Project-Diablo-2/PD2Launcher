@@ -246,6 +246,9 @@
                Margin="50,5,0,135"
                Visibility="{Binding UpdatesNotificationVisibility}" />
 
+        <!-- Wine indicator -->
+        <Image x:Name="WineLogo16Image" VerticalAlignment="Bottom" HorizontalAlignment="Right" Source="pack://application:,,,/Resources/Images/winelogo16.png" Margin="0,0,17,3"/>
+
         <Rectangle x:Name="Overlay" Fill="#AA000000" Visibility="Collapsed" />
         <Frame x:Name="MainFrame" NavigationUIVisibility="Hidden" d:IsHidden="True" />
     </Grid>
