@@ -1466,5 +1466,18 @@ namespace PD2Launcherv2
 
             topmostWindow.Show();
         }
+
+        private async void GoToLogButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                await Shell.OpenFolderAndSelectItemsAsync(Logging.LogDirPath, Logging.LogFileName);
+            }
+            catch (Exception ex)
+            {
+                L.CallerWarning(ex, $"{nameof(Shell.OpenFolderAndSelectItemsAsync)}() threw");
+                MsgBox.Exception(ex, "Failed to navigate to the log file:", MessageBoxImage.Warning);
+            }
+        }
     }
 }

@@ -262,6 +262,15 @@
                            Visibility="{Binding CustomVisibility}"
                            HorizontalAlignment="Center"
                            VerticalAlignment="Center"/>
+                    <local:CustomImageButton x:Name="GoToLogButton"
+                                             Margin="5,0,0,0"
+                                             NormalImageSource="pack://application:,,,/Resources/Images/btn_more.jpg"
+                                             PressedImageSource="pack://application:,,,/Resources/Images/btn_more_pressed.jpg"
+                                             ToolTip="Go to log file..."
+                                             HorizontalAlignment="Center"
+                                             VerticalAlignment="Center"
+                                             Click="GoToLogButton_Click"
+                                             TabIndex="5"/>
                     <local:CustomImageButton x:Name="AboutButton"
                                              Margin="5,0,0,0"
                                              NormalImageSource="pack://application:,,,/Resources/Images/btn_switch.jpg"
