@@ -82,7 +82,7 @@
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type local:CustomImageButton}">
                     <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
-                        <Image x:Name="img" Source="{Binding NormalImageSource, RelativeSource={RelativeSource TemplatedParent}}" Stretch="Fill"/>
+                        <Image x:Name="img" Source="{Binding NormalImageSource, RelativeSource={RelativeSource TemplatedParent}}"/>
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsPressed" Value="True">
@@ -212,9 +212,7 @@
                                    HorizontalAlignment="Left"
                                    Opacity="0.5"
                                    Fill="{TemplateBinding Foreground}" />
-                        <Grid>
-                            <Image Source="pack://application:,,,/Resources/Images/empty_button.png" Stretch="Fill"/>
-                        </Grid>
+                        <Image Source="pack://application:,,,/Resources/Images/empty_button.png"/>
                     </Grid>
                 </ControlTemplate>
             </Setter.Value>
