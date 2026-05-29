@@ -70,10 +70,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="Resources\Icons\icon.ico" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="Crc32.NET" Version="1.2.0" />
     <PackageReference Include="MadMilkman.Ini" Version="1.0.6" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.0-preview.2.24128.5" />
