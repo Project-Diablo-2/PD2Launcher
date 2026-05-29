@@ -1302,7 +1302,7 @@ namespace PD2Launcherv2
             {
                 Debug.WriteLine($"Unhandled exception: {ex}");
 
-                UpdatesNotificationVisibility = Visibility.Visible;
+                ToggleOffline(show: true);
                 onDownloadComplete?.Invoke();
                 return;
             }
