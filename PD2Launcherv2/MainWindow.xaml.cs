@@ -18,6 +18,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Threading;
 using System.IO;
+using PD2Launcherv2.Utils;
 using PD2Shared.Utils;
 
 namespace PD2Launcherv2
@@ -596,6 +597,42 @@ namespace PD2Launcherv2
 
         public void InitializeDefaultSettings(ILocalStorage localStorage)
         {
+            // <!> Since LauncherOptions has been recently added, expect existing config files (aka LocalStorage)
+            //     to be missing that section. Since the whole LocalStorage implementation is a bit sketchy and the below
+            //     initialization doesn't even work -- perform only this specific manual step for now.
+            //
+            //     Keep in mind that LocalStorage.Update() will still rotate and rewrite the entire file. *sigh*
+            if (_localStorage.LoadSectionIfExists<LauncherOptions>(StorageKey.LauncherOptions) == null)
+            {
+                bool localStorageUpdated = false;
+
+                if (Wine.IsRunningUnderWine)
+                {
+                    if (MsgBox.Info(
+                        "It appears to be the first time the launcher has been run.\n" +
+                        "Additionally, it's running under Wine.\n" +
+                        "\n" +
+                        "Would you like to set up launcher options for maximum Wine compatibility?\n" +
+                        "(This can be re-adjusted in the Options menu at any time).",
+                        MessageBoxButton.YesNo,
+                        MessageBoxResult.Yes) == MessageBoxResult.Yes)
+                    {
+                        localStorage.Update<LauncherOptions>(StorageKey.LauncherOptions, new LauncherOptions()
+                        {
+                            ForceSoftwareRenderer = true
+                        });
+
+                        localStorageUpdated = true;
+                    }
+                }
+
+                if (!localStorageUpdated)
+                {
+                    localStorage.Update<LauncherOptions>(StorageKey.LauncherOptions, new LauncherOptions());
+                }
+            }
+
+            // <!> None of the below logic works as expected
             _localStorage.InitializeIfNotExists(StorageKey.FileUpdateModel, new FileUpdateModel());
             _localStorage.InitializeIfNotExists(StorageKey.DdrawOptions, new DdrawOptions());
             _localStorage.InitializeIfNotExists(StorageKey.LauncherArgs, new LauncherArgs());
