@@ -10,6 +10,8 @@ using System.IO;
 using System.Net.Http;
 using System.Text;
 using System.Windows;
+using PD2Shared.Logging;
+using static PD2Shared.Logging.LoggingStatic;
 
 namespace PD2Launcherv2
 {
@@ -136,10 +138,25 @@ namespace PD2Launcherv2
                 return;
             }
 
+            // This is a bit meh, but let's keep the convention and make this case-insensitive
+            var createConsole = e.Args.Any(arg => arg.Equals("--console", StringComparison.OrdinalIgnoreCase));
+
+            // This is not expected to throw
+            Logging.SetUp(createConsole);
+
+            L.CallerInformation($"Using up to {Environment.ProcessorCount} concurrent task(s)");
+
             // Normal UI mode
             base.OnStartup(e);
             var mainWindow = _serviceProvider.GetService<MainWindow>();
             mainWindow?.Show();
+        }
+
+        protected override void OnExit(ExitEventArgs e)
+        {
+            Logging.ShutDown(e.ApplicationExitCode);
+
+            base.OnExit(e);
         }
 
         // Handle non-UI thread exceptions
