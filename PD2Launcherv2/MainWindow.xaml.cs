@@ -248,6 +248,7 @@ namespace PD2Launcherv2
             this.VersionText.Text = PD2Shared.Constants.VersionString;
             UseFileCountProgressMapping();
             ResetUI();
+            ToggleOffline(show: false);
 
             if (Wine.IsRunningUnderWine)
             {
@@ -411,6 +412,7 @@ namespace PD2Launcherv2
                                 _localStorage.LoadSection<FileUpdateModel>(StorageKey.FileUpdateModel),
                                 new ProgressWithCookie<ProgressValues.IData>(_progressCookie, UpdateProgressValues),
                                 new ProgressWithCookie<string>(_progressCookie, UpdatePlayButtonText),
+                                new ProgressWithCookie<bool>(_progressCookie, ToggleOffline),
                                 new ProgressWithCookie<bool>(_progressCookie, ToggleProgressErrorIndicator),
                                 _currentCts.Token);
                         }
@@ -522,6 +524,12 @@ namespace PD2Launcherv2
                         }
                         else
                         {
+                            // <!> Is this still needed?
+                            if (caughtEx is HttpRequestException)
+                            {
+                                ToggleOffline(show: true);
+                            }
+
                             MsgBox.Exception(caughtEx);
                         }
                     }
@@ -823,6 +831,13 @@ namespace PD2Launcherv2
             _playButtonText = text;
 
             RefreshPlayButtonText();
+        }
+
+        private void ToggleOffline(bool show)
+        {
+            _isOffline = show;
+
+            OfflineIndicatorImage.Visibility = _isOffline ? Visibility.Visible : Visibility.Hidden;
         }
 
         private static string GetTextForKeyComboDown(KeyComboDown keyComboDown)
@@ -1286,6 +1301,7 @@ namespace PD2Launcherv2
             catch (Exception ex)
             {
                 Debug.WriteLine($"Unhandled exception: {ex}");
+
                 UpdatesNotificationVisibility = Visibility.Visible;
                 onDownloadComplete?.Invoke();
                 return;

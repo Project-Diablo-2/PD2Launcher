@@ -55,6 +55,7 @@
     <None Remove="Resources\Images\loot_pressed.jpg" />
     <None Remove="Resources\Images\minimize.jpg" />
     <None Remove="Resources\Images\minimize_pressed.jpg" />
+    <None Remove="Resources\Images\offline24.png" />
     <None Remove="Resources\Images\options.jpg" />
     <None Remove="Resources\Images\options_pressed.jpg" />
     <None Remove="Resources\Images\thin_next.jpg" />
@@ -113,6 +114,7 @@
     <Resource Include="Resources\Images\loot_pressed.jpg" />
     <Resource Include="Resources\Images\minimize.jpg" />
     <Resource Include="Resources\Images\minimize_pressed.jpg" />
+    <Resource Include="Resources\Images\offline24.png" />
     <Resource Include="Resources\Images\options.jpg" />
     <Resource Include="Resources\Images\options_pressed.jpg" />
     <Resource Include="Resources\Images\thin_next.jpg" />

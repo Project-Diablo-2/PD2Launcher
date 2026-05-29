@@ -294,6 +294,10 @@
         <!-- Wine indicator -->
         <Image x:Name="WineLogo16Image" VerticalAlignment="Bottom" HorizontalAlignment="Right" Source="pack://application:,,,/Resources/Images/winelogo16.png" Margin="0,0,17,3"/>
 
+        <Grid Margin="17,470,750,95" Height="{Binding ActualHeight, ElementName=PlayButton, Mode=OneWay}" Width="33">
+            <Image x:Name="OfflineIndicatorImage" Source="pack://application:,,,/Resources/Images/offline24.png" HorizontalAlignment="Center" VerticalAlignment="Center" ToolTip="Offline"/>
+        </Grid>
+
         <Rectangle x:Name="Overlay" Fill="#AA000000" Visibility="Collapsed" />
         <Frame x:Name="MainFrame" NavigationUIVisibility="Hidden" d:IsHidden="True" />
     </Grid>
