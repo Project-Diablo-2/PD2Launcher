@@ -13,10 +13,5 @@ namespace PD2Launcherv2.Views
             InitializeComponent();
             DataContext = App.Resolve<OptionsViewModel>();
         }
-
-        private void ComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-
-        }
     }
 }
