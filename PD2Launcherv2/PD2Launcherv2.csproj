@@ -32,6 +32,9 @@
     <None Remove="Resources\Images\bg1.jpg" />
     <None Remove="Resources\Images\bg2.jpg" />
     <None Remove="Resources\Images\bg_plain.jpg" />
+    <None Remove="Resources\Images\blank.png" />
+    <None Remove="Resources\Images\blank_disabled.png" />
+    <None Remove="Resources\Images\blank_pressed.png" />
     <None Remove="Resources\Images\btn_beta.jpg" />
     <None Remove="Resources\Images\btn_live.jpg" />
     <None Remove="Resources\Images\btn_more.jpg" />
@@ -92,6 +95,9 @@
     <Resource Include="Resources\Images\bg1.jpg" />
     <Resource Include="Resources\Images\bg2.jpg" />
     <Resource Include="Resources\Images\bg_plain.jpg" />
+    <Resource Include="Resources\Images\blank.png" />
+    <Resource Include="Resources\Images\blank_disabled.png" />
+    <Resource Include="Resources\Images\blank_pressed.png" />
     <Resource Include="Resources\Images\btn_beta.jpg" />
     <Resource Include="Resources\Images\btn_live.jpg" />
     <Resource Include="Resources\Images\btn_more.jpg" />

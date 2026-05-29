@@ -1,6 +1,9 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                    xmlns:local="clr-namespace:PD2Launcherv2.CustomControl">
+                    xmlns:local="clr-namespace:PD2Launcherv2.CustomControl"
+                    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                    xmlns:comment="https://whatever/comment"
+                    mc:Ignorable="comment">
 
     <Style x:Key="TransparentButtonWithHighlight" TargetType="Button">
         <Setter Property="Background" Value="Transparent"/>
@@ -71,6 +74,76 @@
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter TargetName="img" Property="Source" Value="{Binding DisabledImageSource, RelativeSource={RelativeSource TemplatedParent}}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="{x:Type local:BlankButtonWithText}">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type local:BlankButtonWithText}">
+                    <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
+                        <Grid>
+                            <Image x:Name="img" Source="pack://application:,,,/Resources/Images/blank.png"/>
+                            <TextBlock x:Name="text"
+                                   Text="{Binding Text, RelativeSource={RelativeSource TemplatedParent}}"
+                                   FontFamily="{DynamicResource BlizzHeavy}"
+                                   TextAlignment="Center"
+                                   TextOptions.TextFormattingMode="Display"
+                                   TextOptions.TextRenderingMode="Grayscale"
+                                   TextOptions.TextHintingMode="Fixed"
+                                   FontSize="21"
+                                   FontStretch="Condensed"
+                                   comment:FontStretch="If only that worked..."
+                                   VerticalAlignment="Center"
+                                   HorizontalAlignment="Center"
+                                   MaxWidth="{Binding ElementName=img, Path=Width, Mode=OneWay}"
+                                   MaxHeight="{Binding ElementName=img, Path=Height, Mode=OneWay}"
+                                   TextTrimming="CharacterEllipsis"
+                                   Visibility="Visible"
+                                   Margin="0,0,0,-2">
+                                <TextBlock.Effect>
+                                    <DropShadowEffect
+                                                  RenderingBias="Quality"
+                                                  Color="#FFCCCCCC"
+                                                  BlurRadius="1.5"
+                                                  ShadowDepth="1.5"
+                                                  Direction="315" />
+                                </TextBlock.Effect>
+                            </TextBlock>
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="img" Property="Source" Value="pack://application:,,,/Resources/Images/blank_pressed.png"/>
+                            <Setter TargetName="text" Property="Margin" Value="-4,0,0,-6"/>
+                            <Setter TargetName="text" Property="Effect">
+                                <Setter.Value>
+                                    <DropShadowEffect
+                                                  RenderingBias="Quality"
+                                                  Color="#FFCCCCCC"
+                                                  BlurRadius="1.5"
+                                                  ShadowDepth="1.5"
+                                                  Opacity="0.75"
+                                                  Direction="315" />
+                                </Setter.Value>
+                            </Setter>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="img" Property="Source" Value="pack://application:,,,/Resources/Images/blank_disabled.png"/>
+                            <Setter TargetName="text" Property="Effect">
+                                <Setter.Value>
+                                    <DropShadowEffect
+                                                  RenderingBias="Quality"
+                                                  Color="#FFA0A0A0"
+                                                  BlurRadius="2.0"
+                                                  ShadowDepth="1.5"
+                                                  Direction="315" />
+                                </Setter.Value>
+                            </Setter>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
