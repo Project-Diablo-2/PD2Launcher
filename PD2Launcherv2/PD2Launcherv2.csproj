@@ -118,10 +118,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Services\" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\PD2Shared\PD2Shared.csproj" />
   </ItemGroup>
 
