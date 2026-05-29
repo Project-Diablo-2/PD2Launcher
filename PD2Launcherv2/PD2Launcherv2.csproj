@@ -49,8 +49,6 @@
     <None Remove="Resources\Images\close_disabled.png" />
     <None Remove="Resources\Images\close_pressed.jpg" />
     <None Remove="Resources\Images\custom_notif.jpg" />
-    <None Remove="Resources\Images\donate.jpg" />
-    <None Remove="Resources\Images\donate_pressed.jpg" />
     <None Remove="Resources\Images\empty_button.png" />
     <None Remove="Resources\Images\logo.gif" />
     <None Remove="Resources\Images\loot.jpg" />
@@ -109,8 +107,6 @@
     <Resource Include="Resources\Images\close.jpg" />
     <Resource Include="Resources\Images\close_disabled.png" />
     <Resource Include="Resources\Images\close_pressed.jpg" />
-    <Resource Include="Resources\Images\donate.jpg" />
-    <Resource Include="Resources\Images\donate_pressed.jpg" />
     <Resource Include="Resources\Images\empty_button.png" />
     <Resource Include="Resources\Images\logo.gif" />
     <Resource Include="Resources\Images\loot.jpg" />

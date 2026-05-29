@@ -233,9 +233,8 @@
             <!-- Right Side: Aligned with News Right Edge -->
             <StackPanel Grid.Column="3" Orientation="Vertical" HorizontalAlignment="Right">
                 <!-- Donate Button -->
-                <local:CustomImageButton x:Name="DonateButton"
-                                 NormalImageSource="pack://application:,,,/Resources/Images/donate.jpg"
-                                 PressedImageSource="pack://application:,,,/Resources/Images/donate_pressed.jpg"
+                <local:BlankButtonWithText x:Name="DonateButton"
+                                 Text="Donate here"
                                  Click="DonateButton_Click"
                                  TabIndex="4" />
 
