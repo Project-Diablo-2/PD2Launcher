@@ -278,7 +278,7 @@
                         </RepeatButton>
                         <Track Grid.Row="1" Name="PART_Track" IsDirectionReversed="true">
                             <Track.Thumb>
-                                <Thumb Background="{StaticResource GoldBrush}" BorderBrush="Transparent"/>
+                                <Thumb Background="{StaticResource GoldDarkerBrush}" BorderBrush="Transparent"/>
                             </Track.Thumb>
                         </Track>
                         <RepeatButton Grid.Row="2" Command="ScrollBar.LineDownCommand" 
