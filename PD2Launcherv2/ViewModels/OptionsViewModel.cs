@@ -503,6 +503,25 @@ namespace PD2Launcherv2.ViewModels
             }
         }
 
+        private bool _forceSoftwareRederer;
+        public bool ForceSoftwareRenderer
+        {
+            get => _forceSoftwareRederer;
+            set
+            {
+                if (_forceSoftwareRederer != value)
+                {
+                    _forceSoftwareRederer = value;
+                    OnPropertyChanged();
+                    Messenger.Default.Send(new LauncherOptionsChangeMessage
+                    {
+                        ForceSoftwareRenderer = value,
+                        DisableAutoUpdate = AutoUpdate
+                    });
+                }
+            }
+        }
+
         private bool _autoUpdate;
         public bool AutoUpdate
         {
@@ -514,7 +533,11 @@ namespace PD2Launcherv2.ViewModels
                     Debug.WriteLine($"Set _autoUpdate {value}");
                     _autoUpdate = value;
                     OnPropertyChanged();
-                    Messenger.Default.Send(new LauncherOptionsChangeMessage { DisableAutoUpdate = value });
+                    Messenger.Default.Send(new LauncherOptionsChangeMessage
+                    {
+                        ForceSoftwareRenderer = ForceSoftwareRenderer,
+                        DisableAutoUpdate = value
+                    });
                 }
             }
         }
@@ -609,6 +632,7 @@ namespace PD2Launcherv2.ViewModels
             LauncherOptions launcherOptions = _localStorage.LoadSection<LauncherOptions>(StorageKey.LauncherOptions);
             if (launcherOptions != null)
             {
+                ForceSoftwareRenderer = launcherOptions.ForceSoftwareRenderer;
                 AutoUpdate = launcherOptions.DisableAutoUpdate;
             }
             Debug.WriteLine("end LoadLauncherOptions\n");
@@ -633,6 +657,7 @@ namespace PD2Launcherv2.ViewModels
             Debug.WriteLine("\nStart UpdateLauncherOptionsStorage");
             var launcherOptions = new LauncherOptions
             {
+                ForceSoftwareRenderer = ForceSoftwareRenderer,
                 DisableAutoUpdate = AutoUpdate
             };
             _localStorage.Update(StorageKey.LauncherOptions, launcherOptions);

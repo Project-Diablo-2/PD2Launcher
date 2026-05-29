@@ -2,6 +2,7 @@
 {
     public class LauncherOptions
     {
+        public bool ForceSoftwareRenderer { get; set; } = false;
         public bool DisableAutoUpdate { get; set; } = false;
     }
 }

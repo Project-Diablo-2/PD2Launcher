@@ -93,6 +93,21 @@ namespace PD2Launcherv2
             }
         }
 
+        private bool _forceSoftwareRenderer;
+        public bool ForceSoftwareRenderer
+        {
+            get => _forceSoftwareRenderer;
+            set
+            {
+                if (_forceSoftwareRenderer != value)
+                {
+                    _forceSoftwareRenderer = value;
+                    System.Windows.Media.RenderOptions.ProcessRenderMode = _forceSoftwareRenderer ? System.Windows.Interop.RenderMode.SoftwareOnly : System.Windows.Interop.RenderMode.Default;
+                    OnPropertyChanged(nameof(ForceSoftwareRenderer));
+                }
+            }
+        }
+
         private bool _isDisableUpdates;
         public bool IsDisableUpdates
         {
@@ -425,6 +440,7 @@ namespace PD2Launcherv2
         private void LoadOptions()
         {
             var launcherOptions = _localStorage.LoadSection<LauncherOptions>(StorageKey.LauncherOptions);
+            ForceSoftwareRenderer = launcherOptions?.ForceSoftwareRenderer == true;
             IsDisableUpdates = launcherOptions?.DisableAutoUpdate == true;
         }
 
@@ -438,6 +454,8 @@ namespace PD2Launcherv2
 
         private void OnLauncherOptionsChanged(LauncherOptionsChangeMessage message)
         {
+            ForceSoftwareRenderer = message.ForceSoftwareRenderer;
+            OnPropertyChanged(nameof(ForceSoftwareRenderer));
             IsDisableUpdates = message.DisableAutoUpdate;
             OnPropertyChanged(nameof(IsDisableUpdates));
         }

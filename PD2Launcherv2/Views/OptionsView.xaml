@@ -73,6 +73,9 @@
                     FontFamily="{StaticResource BlizzMedium}" Foreground="{StaticResource GoldLighterBrush}"
                     FontSize="14" Margin="10,5,0,0">
                     <StackPanel>
+                        <CheckBox x:Name="ForceSoftwareRenderer" Content="Force Software Renderer" Style="{StaticResource CustomCheckBoxStyle}"
+                            FontFamily="{StaticResource BlizzMedium}" Foreground="{StaticResource GoldBrush}" IsChecked="{Binding ForceSoftwareRenderer, Mode=TwoWay}"
+                            FontSize="12" Margin="10,10,10,0"/>
                         <CheckBox x:Name="DisableAutoUpdate" Content="Disable Updates" Style="{StaticResource CustomCheckBoxStyle}" 
                             FontFamily="{StaticResource BlizzMedium}" Foreground="{StaticResource GoldBrush}" IsChecked="{Binding AutoUpdate, Mode=TwoWay}"
                             FontSize="12" Margin="10,10,10,0"/>
