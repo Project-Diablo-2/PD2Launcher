@@ -186,6 +186,7 @@ namespace PD2Launcherv2
                 _localStorage.Update(StorageKey.FileUpdateModel, storeUpdate);
             }
 
+            this.Title = MsgBox.DefaultDialogTitle;
 
             // Don't try to update launcher in debug mode
             // TEST
