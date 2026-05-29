@@ -15,8 +15,9 @@
         <ScrollViewer Margin="20" VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Hidden">
             <StackPanel>
                 <TextBlock Text="Options" FontSize="25" Margin="0,20,0,0" VerticalAlignment="Top" HorizontalAlignment="Center" Foreground="{StaticResource GoldBrush}" FontFamily="{StaticResource BlizzHeavy}"/>
-                <TextBlock Text="Windows Permissions" HorizontalAlignment="Center" FontSize="12" FontFamily="{StaticResource BlizzMedium}" Foreground="{StaticResource GoldLighterBrush}"/>
+                <TextBlock x:Name="WindowsPermissionsText" Text="Windows Permissions" HorizontalAlignment="Center" FontSize="12" FontFamily="{StaticResource BlizzMedium}" Foreground="{StaticResource GoldLighterBrush}"/>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                    <Image x:Name="WineLogo32Image" Source="/Resources/Images/winelogo32.png" HorizontalAlignment="Left" VerticalAlignment="Center"/>
                     <Button x:Name="SetWindowsPermissions" Content="Set" Style="{StaticResource CustomColorChangeButton}"
                                     Width="75" Height="25" FontSize="12" Margin="5" Foreground="Black"
                                     Command="{Binding SetWindowsPermissionsCommand}" FontFamily="{StaticResource BlizzLight}">
@@ -36,6 +37,7 @@
                             </ToolTip>
                         </Button.ToolTip>
                     </Button>
+                    <Image x:Name="WineLogo32ImageCopy" Source="/Resources/Images/winelogo32.png" Visibility="Hidden"/>
                 </StackPanel>
 
                 <GroupBox Header="Graphics" Margin="10,0,0,0" FontWeight="Bold" BorderThickness="0" 

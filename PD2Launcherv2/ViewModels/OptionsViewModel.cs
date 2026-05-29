@@ -8,6 +8,10 @@ using PD2Shared.Models;
 using System.Windows;
 using System.Diagnostics;
 using PD2Launcherv2.Messages;
+using PD2Launcherv2.Utils;
+using PD2Shared.Logging;
+using static PD2Shared.Logging.LoggingStatic;
+using PD2Shared.Utils;
 
 namespace PD2Launcherv2.ViewModels
 {
@@ -137,6 +141,28 @@ namespace PD2Launcherv2.ViewModels
 
         private void SetWindowsPermissions()
         {
+            if (Wine.IsRunningUnderWine)
+            {
+                try
+                {
+                    Wine.ApplyWineConfiguration();
+
+                    MsgBox.Info("Configuration applied successfully.");
+                }
+                catch (Wine.WineException ex)
+                {
+                    L.CallerError(ex.InnerException, ex.Message);
+                    MsgBox.Exception(ex, "Failed to apply configuration:");
+                }
+                catch (Exception ex)
+                {
+                    L.CallerError(ex, "Failed to apply configuration.");
+                    MsgBox.Exception(ex, "Failed to apply configuration:");
+                }
+
+                return;
+            }
+
             var startInfo = new ProcessStartInfo()
             {
                 FileName = "powershell.exe",
@@ -148,6 +174,28 @@ namespace PD2Launcherv2.ViewModels
 
         private void RemoveWindowsPermissions()
         {
+            if (Wine.IsRunningUnderWine)
+            {
+                try
+                {
+                    Wine.RemoveWineConfiguration();
+
+                    MsgBox.Info("Configuration removed successfully.");
+                }
+                catch (Wine.WineException ex)
+                {
+                    L.CallerError(ex.InnerException, ex.Message);
+                    MsgBox.Exception(ex, "Failed to remove configuration:");
+                }
+                catch (Exception ex)
+                {
+                    L.CallerError(ex, "Failed to remove configuration.");
+                    MsgBox.Exception(ex, "Failed to remove configuration:");
+                }
+
+                return;
+            }
+
             var startInfo = new ProcessStartInfo()
             {
                 FileName = "powershell.exe",
