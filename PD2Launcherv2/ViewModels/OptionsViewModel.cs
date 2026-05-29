@@ -564,6 +564,27 @@ namespace PD2Launcherv2.ViewModels
                     Messenger.Default.Send(new LauncherOptionsChangeMessage
                     {
                         ForceSoftwareRenderer = value,
+                        UseHttp2 = UseHttp2,
+                        DisableAutoUpdate = AutoUpdate
+                    });
+                }
+            }
+        }
+
+        private bool _useHttp2;
+        public bool UseHttp2
+        {
+            get => _useHttp2;
+            set
+            {
+                if (_useHttp2 != value)
+                {
+                    _useHttp2 = value;
+                    OnPropertyChanged();
+                    Messenger.Default.Send(new LauncherOptionsChangeMessage
+                    {
+                        ForceSoftwareRenderer = ForceSoftwareRenderer,
+                        UseHttp2 = value,
                         DisableAutoUpdate = AutoUpdate
                     });
                 }
@@ -584,6 +605,7 @@ namespace PD2Launcherv2.ViewModels
                     Messenger.Default.Send(new LauncherOptionsChangeMessage
                     {
                         ForceSoftwareRenderer = ForceSoftwareRenderer,
+                        UseHttp2 = UseHttp2,
                         DisableAutoUpdate = value
                     });
                 }
@@ -681,6 +703,7 @@ namespace PD2Launcherv2.ViewModels
             if (launcherOptions != null)
             {
                 ForceSoftwareRenderer = launcherOptions.ForceSoftwareRenderer;
+                UseHttp2 = launcherOptions.UseHttp2;
                 AutoUpdate = launcherOptions.DisableAutoUpdate;
             }
             Debug.WriteLine("end LoadLauncherOptions\n");
@@ -706,6 +729,7 @@ namespace PD2Launcherv2.ViewModels
             var launcherOptions = new LauncherOptions
             {
                 ForceSoftwareRenderer = ForceSoftwareRenderer,
+                UseHttp2 = UseHttp2,
                 DisableAutoUpdate = AutoUpdate
             };
             _localStorage.Update(StorageKey.LauncherOptions, launcherOptions);

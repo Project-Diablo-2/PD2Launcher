@@ -112,6 +112,20 @@ namespace PD2Launcherv2
             }
         }
 
+        private bool _useHttp2;
+        public bool UseHttp2
+        {
+            get => _useHttp2;
+            set
+            {
+                if (_useHttp2 != value)
+                {
+                    _useHttp2 = value;
+                    OnPropertyChanged(nameof(UseHttp2));
+                }
+            }
+        }
+
         private bool _isDisableUpdates;
         public bool IsDisableUpdates
         {
@@ -456,6 +470,7 @@ namespace PD2Launcherv2
         {
             var launcherOptions = _localStorage.LoadSection<LauncherOptions>(StorageKey.LauncherOptions);
             ForceSoftwareRenderer = launcherOptions?.ForceSoftwareRenderer == true;
+            UseHttp2 = launcherOptions?.UseHttp2 == true;
             IsDisableUpdates = launcherOptions?.DisableAutoUpdate == true;
         }
 
@@ -471,6 +486,8 @@ namespace PD2Launcherv2
         {
             ForceSoftwareRenderer = message.ForceSoftwareRenderer;
             OnPropertyChanged(nameof(ForceSoftwareRenderer));
+            UseHttp2 = message.UseHttp2;
+            OnPropertyChanged(nameof(UseHttp2));
             IsDisableUpdates = message.DisableAutoUpdate;
             OnPropertyChanged(nameof(IsDisableUpdates));
         }
@@ -621,7 +638,9 @@ namespace PD2Launcherv2
                     {
                         localStorage.Update<LauncherOptions>(StorageKey.LauncherOptions, new LauncherOptions()
                         {
-                            ForceSoftwareRenderer = true
+                            ForceSoftwareRenderer = true,
+                            // HTTP/2 performance in Wine is currently subpar
+                            UseHttp2 = false
                         });
 
                         localStorageUpdated = true;
