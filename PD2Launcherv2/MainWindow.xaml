@@ -2,6 +2,9 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:PD2Launcherv2.CustomControl"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
         Title="Project Diablo 2 Launcher" Height="600" Width="800"
         WindowStyle="None" AllowsTransparency="True" Background="Transparent">
     <WindowChrome.WindowChrome>
@@ -244,6 +247,6 @@
                Visibility="{Binding UpdatesNotificationVisibility}" />
 
         <Rectangle x:Name="Overlay" Fill="#AA000000" Visibility="Collapsed" />
-        <Frame x:Name="MainFrame" NavigationUIVisibility="Hidden" />
+        <Frame x:Name="MainFrame" NavigationUIVisibility="Hidden" d:IsHidden="True" />
     </Grid>
 </Window>
