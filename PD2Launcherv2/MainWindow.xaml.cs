@@ -93,6 +93,21 @@ namespace PD2Launcherv2
             }
         }
 
+        private bool _isDisableUpdates;
+        public bool IsDisableUpdates
+        {
+            get => _isDisableUpdates;
+            set
+            {
+                if (_isDisableUpdates != value)
+                {
+                    _isDisableUpdates = value;
+                    UpdatesNotificationVisibility = value ? Visibility.Visible : Visibility.Collapsed;
+                    OnPropertyChanged(nameof(IsDisableUpdates));
+                }
+            }
+        }
+
         private Visibility _updatesNotificationVisibility = Visibility.Collapsed;
         public Visibility UpdatesNotificationVisibility
         {
@@ -108,7 +123,6 @@ namespace PD2Launcherv2
         }
 
         public List<NewsItem> NewsItems { get; set; }
-        public bool IsDisableUpdates { get; private set; }
         public ICommand OpenOptionsCommand { get; private set; }
         public ICommand OpenLootCommand { get; private set; }
         public ICommand OpenAboutCommand { get; private set; }
@@ -133,10 +147,12 @@ namespace PD2Launcherv2
             EnsureWindowIsVisible();
             Loaded += MainWindow_Loaded;
             LoadConfiguration();
+            LoadOptions();
 
             // Registering to receive NavigationMessage
             Messenger.Default.Register<NavigationMessage>(this, OnNavigationMessageReceived);
             Messenger.Default.Register<ConfigurationChangeMessage>(this, OnConfigurationChanged);
+            Messenger.Default.Register<LauncherOptionsChangeMessage>(this, OnLauncherOptionsChanged);
             DataContext = this;
 
             this.Closed += MainWindow_Closed;
@@ -251,8 +267,8 @@ namespace PD2Launcherv2
                     bool isUpdated = await _filterHelpers.CheckAndUpdateFilterAsync(selectedAuthorAndFilter);
                 }
 
-                LauncherArgs launcherArgs = _localStorage.LoadSection<LauncherArgs>(StorageKey.LauncherArgs);
-                if (!launcherArgs.disableAutoUpdate)
+                LauncherOptions launcherOptions = _localStorage.LoadSection<LauncherOptions>(StorageKey.LauncherOptions);
+                if (!launcherOptions.DisableAutoUpdate)
                 {
                     try
                     {
@@ -402,13 +418,14 @@ namespace PD2Launcherv2
         private void LoadConfiguration()
         {
             var fileUpdateModel = _localStorage.LoadSection<FileUpdateModel>(StorageKey.FileUpdateModel);
-            var launcherArgs = _localStorage.LoadSection<LauncherArgs>(StorageKey.LauncherArgs);
             IsBeta = fileUpdateModel?.FilePath == "Beta";
             IsCustom = fileUpdateModel?.FilePath == "Custom";
-            IsDisableUpdates = launcherArgs?.disableAutoUpdate == true;
+        }
 
-            // Use property to control visibility
-            UpdatesNotificationVisibility = IsDisableUpdates ? Visibility.Visible : Visibility.Collapsed;
+        private void LoadOptions()
+        {
+            var launcherOptions = _localStorage.LoadSection<LauncherOptions>(StorageKey.LauncherOptions);
+            IsDisableUpdates = launcherOptions?.DisableAutoUpdate == true;
         }
 
         private void OnConfigurationChanged(ConfigurationChangeMessage message)
@@ -417,8 +434,12 @@ namespace PD2Launcherv2
             OnPropertyChanged(nameof(IsBeta));
             IsCustom = message.IsCustom;
             OnPropertyChanged(nameof(IsCustom));
-            // Use property to control visibility
-            UpdatesNotificationVisibility = message.IsDisableUpdates ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        private void OnLauncherOptionsChanged(LauncherOptionsChangeMessage message)
+        {
+            IsDisableUpdates = message.DisableAutoUpdate;
+            OnPropertyChanged(nameof(IsDisableUpdates));
         }
 
         private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
@@ -548,6 +569,7 @@ namespace PD2Launcherv2
             _localStorage.InitializeIfNotExists(StorageKey.FileUpdateModel, new FileUpdateModel());
             _localStorage.InitializeIfNotExists(StorageKey.DdrawOptions, new DdrawOptions());
             _localStorage.InitializeIfNotExists(StorageKey.LauncherArgs, new LauncherArgs());
+            _localStorage.InitializeIfNotExists(StorageKey.LauncherOptions, new LauncherOptions());
             _localStorage.InitializeIfNotExists(StorageKey.SelectedAuthorAndFilter, new SelectedAuthorAndFilter());
             _localStorage.InitializeIfNotExists(StorageKey.Pd2AuthorList, new Pd2AuthorList());
             _localStorage.InitializeIfNotExists(StorageKey.News, new News());

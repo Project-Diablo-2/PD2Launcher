@@ -110,8 +110,8 @@ namespace PD2Launcherv2
                         await filterHelpers.CheckAndUpdateFilterAsync(selected);
                     }
 
-                    var launcherArgs = localStorage.LoadSection<LauncherArgs>(StorageKey.LauncherArgs);
-                    if (!launcherArgs.disableAutoUpdate)
+                    var launcherOptions = localStorage.LoadSection<LauncherOptions>(StorageKey.LauncherOptions);
+                    if (!launcherOptions.DisableAutoUpdate)
                     {
                         try
                         {

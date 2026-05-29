@@ -32,8 +32,8 @@ namespace PD2Shared
                     }
                 }
 
-                var launcherArgs = storage.LoadSection<LauncherArgs>(StorageKey.LauncherArgs);
-                if (launcherArgs != null && launcherArgs.disableAutoUpdate)
+                var launcherOptions = storage.LoadSection<LauncherOptions>(StorageKey.LauncherOptions);
+                if (launcherOptions?.DisableAutoUpdate == true)
                 {
                     gameLauncher.LaunchGame(storage);
                     return;

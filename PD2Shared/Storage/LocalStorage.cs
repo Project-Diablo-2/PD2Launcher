@@ -68,6 +68,9 @@ namespace PD2Shared.Storage
                 case StorageKey.LauncherArgs:
                     settings.LauncherArgs = value as LauncherArgs ?? new LauncherArgs();
                     break;
+                case StorageKey.LauncherOptions:
+                    settings.LauncherOptions = value as LauncherOptions ?? new LauncherOptions();
+                    break;
                 case StorageKey.DdrawOptions:
                     settings.DdrawOptions = value as DdrawOptions ?? new DdrawOptions();
                     break;
@@ -128,6 +131,7 @@ namespace PD2Shared.Storage
             return key switch
             {
                 StorageKey.LauncherArgs => settings.LauncherArgs as T ?? Activator.CreateInstance<T>(),
+                StorageKey.LauncherOptions => settings.LauncherOptions as T ?? Activator.CreateInstance<T>(),
                 StorageKey.DdrawOptions => settings.DdrawOptions as T ?? Activator.CreateInstance<T>(),
                 StorageKey.FileUpdateModel => settings.FileUpdateModel as T ?? Activator.CreateInstance<T>(),
                 StorageKey.Pd2AuthorList => settings.Pd2AuthorList as T ?? Activator.CreateInstance<T>(),
@@ -159,6 +163,9 @@ namespace PD2Shared.Storage
                     {
                         case StorageKey.LauncherArgs:
                             settings.LauncherArgs = defaultValue as LauncherArgs ?? new LauncherArgs();
+                            break;
+                        case StorageKey.LauncherOptions:
+                            settings.LauncherOptions = defaultValue as LauncherOptions ?? new LauncherOptions();
                             break;
                         case StorageKey.DdrawOptions:
                             settings.DdrawOptions = defaultValue as DdrawOptions ?? new DdrawOptions();

@@ -74,8 +74,7 @@ namespace PD2Launcherv2.ViewModels
                 FilePath = "Live"
             };
             _localStorage.Update(StorageKey.FileUpdateModel, fileUpdateModel);
-            var launcherArgs = _localStorage.LoadSection<LauncherArgs>(StorageKey.LauncherArgs);
-            Messenger.Default.Send(new ConfigurationChangeMessage { IsBeta = false , IsCustom = false, IsDisableUpdates = launcherArgs.disableAutoUpdate});
+            Messenger.Default.Send(new ConfigurationChangeMessage { IsBeta = false , IsCustom = false });
             Debug.WriteLine("end ProdBucketAssign\n");
             Messenger.Default.Send(new NavigationMessage { Action = NavigationAction.GoBack });
         }
@@ -88,9 +87,8 @@ namespace PD2Launcherv2.ViewModels
                 FilePath = "Beta"
             };
             _localStorage.Update(StorageKey.FileUpdateModel, fileUpdateModel);
-            var launcherArgs = _localStorage.LoadSection<LauncherArgs>(StorageKey.LauncherArgs);
 
-            Messenger.Default.Send(new ConfigurationChangeMessage { IsBeta = true , IsCustom = false , IsDisableUpdates = launcherArgs.disableAutoUpdate });
+            Messenger.Default.Send(new ConfigurationChangeMessage { IsBeta = true , IsCustom = false });
             Debug.WriteLine("end BetaBucketAssign \n");
             Messenger.Default.Send(new NavigationMessage { Action = NavigationAction.GoBack });
         }
@@ -118,15 +116,12 @@ namespace PD2Launcherv2.ViewModels
 
             _localStorage.Update(StorageKey.FileUpdateModel, fileUpdateModel);
 
-            var launcherArgs = _localStorage.LoadSection<LauncherArgs>(StorageKey.LauncherArgs);
-
             Messenger.Default.Send(new ConfigurationChangeMessage
             {
                 IsBeta = false,
-                IsCustom = false,
-                IsDisableUpdates = launcherArgs.disableAutoUpdate
+                IsCustom = false
             });
-            Messenger.Default.Send(new ConfigurationChangeMessage { IsBeta = false, IsCustom = true, IsDisableUpdates = launcherArgs.disableAutoUpdate });
+            Messenger.Default.Send(new ConfigurationChangeMessage { IsBeta = false, IsCustom = true });
             Debug.WriteLine("end SetCustomEnvironment\n");
             Messenger.Default.Send(new NavigationMessage { Action = NavigationAction.GoBack });
         }

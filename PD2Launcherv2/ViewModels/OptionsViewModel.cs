@@ -40,6 +40,7 @@ namespace PD2Launcherv2.ViewModels
             MinFpsPickerItems = Constants.MinFpsPickerItems();
             ShaderPickerItems = Constants.ShaderPickerItems();
             LoadLauncherArgs();
+            LoadLauncherOptions();
             LoadDDrawStorage();
             DealWithLoadingModeComboBox(_localStorage);
             CloseCommand = new RelayCommand(CloseView);
@@ -513,9 +514,7 @@ namespace PD2Launcherv2.ViewModels
                     Debug.WriteLine($"Set _autoUpdate {value}");
                     _autoUpdate = value;
                     OnPropertyChanged();
-                    var fileUpdateMode = _localStorage.LoadSection<FileUpdateModel>(StorageKey.FileUpdateModel);
-                    bool amIBeta = fileUpdateMode.FilePath.Equals("Beta");
-                    Messenger.Default.Send(new ConfigurationChangeMessage { IsDisableUpdates = value, IsBeta = amIBeta });
+                    Messenger.Default.Send(new LauncherOptionsChangeMessage { DisableAutoUpdate = value });
                 }
             }
         }
@@ -600,9 +599,19 @@ namespace PD2Launcherv2.ViewModels
                 IsDdrawSelected = launcherArgs.graphics;
                 SkipToBnet = launcherArgs.skiptobnet;
                 SndBkg = launcherArgs.sndbkg;
-                AutoUpdate = launcherArgs.disableAutoUpdate;
             }
             Debug.WriteLine("end LoadLauncherArgs\n");
+        }
+
+        private void LoadLauncherOptions()
+        {
+            Debug.WriteLine("\nStart LoadLauncherOptions");
+            LauncherOptions launcherOptions = _localStorage.LoadSection<LauncherOptions>(StorageKey.LauncherOptions);
+            if (launcherOptions != null)
+            {
+                AutoUpdate = launcherOptions.DisableAutoUpdate;
+            }
+            Debug.WriteLine("end LoadLauncherOptions\n");
         }
 
         private void UpdateLauncherArgsStorage()
@@ -613,11 +622,21 @@ namespace PD2Launcherv2.ViewModels
                 // Again, assuming true represents "ddraw"
                 graphics = IsDdrawSelected,
                 skiptobnet = SkipToBnet,
-                sndbkg = SndBkg,
-                disableAutoUpdate = AutoUpdate,
+                sndbkg = SndBkg
             };
             _localStorage.Update(StorageKey.LauncherArgs, launcherArgs);
             Debug.WriteLine("end UpdateLauncherArgsStorage\n");
+        }
+
+        private void UpdateLauncherOptionsStorage()
+        {
+            Debug.WriteLine("\nStart UpdateLauncherOptionsStorage");
+            var launcherOptions = new LauncherOptions
+            {
+                DisableAutoUpdate = AutoUpdate
+            };
+            _localStorage.Update(StorageKey.LauncherOptions, launcherOptions);
+            Debug.WriteLine("end UpdateLauncherOptionsStorage\n");
         }
 
         private void LoadDDrawCheckBoxOptions()
@@ -769,6 +788,7 @@ namespace PD2Launcherv2.ViewModels
         {
             //save LauncherArgs Storage
             UpdateLauncherArgsStorage();
+            UpdateLauncherOptionsStorage();
             //save 
             UpdateDDrawStorage();
             //write ddrawstorage to .ini
