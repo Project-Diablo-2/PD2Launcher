@@ -76,7 +76,7 @@
                         <CheckBox x:Name="DisableAutoUpdate" Content="Disable Updates" Style="{StaticResource CustomCheckBoxStyle}" 
                             FontFamily="{StaticResource BlizzMedium}" Foreground="{StaticResource GoldBrush}" IsChecked="{Binding AutoUpdate, Mode=TwoWay}"
                             FontSize="12" Margin="10,10,10,0"/>
-                        <TextBlock Text="Checking this will stop your game from updating when you select the play button" FontSize="12" FontStyle="Italic" Margin="10,0,10,10" Foreground="{StaticResource GoldDarkerBrush}"/>
+                        <TextBlock Text="Checking this will stop your game from updating when you select the play button" FontSize="12" FontStyle="Italic" Margin="10,0,10,10" Foreground="{StaticResource RedDarkerBrush}"/>
                     </StackPanel>
                 </GroupBox>
 
