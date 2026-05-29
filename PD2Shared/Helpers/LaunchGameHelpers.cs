@@ -14,11 +14,6 @@ namespace PD2Shared.Helpers
             var fileUpdateModel = localStorage.LoadSection<FileUpdateModel>(PD2Shared.Models.StorageKey.FileUpdateModel);
 
             string diabloIIExePath = Path.Combine(Directory.GetCurrentDirectory(), "Game.exe");
-            if (!File.Exists(diabloIIExePath))
-            {
-                Debug.WriteLine("Game.exe not found.");
-                return;
-            }
 
             LauncherArgs launcherArgs = localStorage.LoadSection<LauncherArgs>(PD2Shared.Models.StorageKey.LauncherArgs);
 
