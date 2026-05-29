@@ -5,19 +5,27 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
-        Title="Project Diablo 2 Launcher" Height="600" Width="800"
-        WindowStyle="None" AllowsTransparency="True" Background="Transparent">
+        Style="{StaticResource PixelPerfectWindow}"
+        Title="Project Diablo 2 Launcher"
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        ResizeMode="NoResize"
+        SizeToContent="WidthAndHeight"
+        Closing="Window_Closing"
+        KeyDown="Window_KeyDown"
+        KeyUp="Window_KeyUp"
+        IsKeyboardFocusWithinChanged="Window_IsKeyboardFocusWithinChanged"
+        Activated="Window_Activated">
     <WindowChrome.WindowChrome>
         <WindowChrome CaptionHeight="0" ResizeBorderThickness="0" CornerRadius="0" GlassFrameThickness="0" UseAeroCaptionButtons="False"/>
     </WindowChrome.WindowChrome>
 
     <Grid>
-        <Image Source="pack://application:,,,/Resources/Images/bg2.jpg" Stretch="Fill"
+        <Image Source="pack://application:,,,/Resources/Images/bg2.jpg"
                MouseLeftButtonDown="BackgroundImage_MouseLeftButtonDown"/>
 
         <!--Logo in the center -->
         <Image xmlns:gif="http://wpfanimatedgif.codeplex.com"
-       gif:ImageBehavior.AnimatedSource="pack://application:,,,/Resources/Images/logo.gif" Stretch="None" 
+       gif:ImageBehavior.AnimatedSource="pack://application:,,,/Resources/Images/logo.gif"
                HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,10,5,0" MouseLeftButtonDown="BackgroundImage_MouseLeftButtonDown"/>
 
         <Grid>
@@ -129,75 +137,110 @@
         <!-- Top right buttons-->
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="10">
             <local:CustomImageButton x:Name="MinimizeButton"
-                             Width="25" Height="25" Margin="0,10,-1,0"
                              NormalImageSource="pack://application:,,,/Resources/Images/minimize.jpg"
                              PressedImageSource="pack://application:,,,/Resources/Images/minimize_pressed.jpg"
-                             Click="MinimizeButton_Click"/>
+                             Click="MinimizeButton_Click"
+                             TabIndex="6" />
             <local:CustomImageButton x:Name="CloseButton"
-                             Width="25" Height="25" Margin="5,10,0,0"
+                             Margin="5,0,0,0"
                              NormalImageSource="pack://application:,,,/Resources/Images/close.jpg"
                              PressedImageSource="pack://application:,,,/Resources/Images/close_pressed.jpg"
-                             Click="CloseButton_Click"/>
+                             DisabledImageSource="pack://application:,,,/Resources/Images/close_disabled.png"
+                             Click="CloseButton_Click"
+                             TabIndex="7"/>
         </StackPanel>
 
         <!-- Aligned Button Grid (bottom center under news box) -->
         <Grid HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="-1,0,0,10" Width="700">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
 
             <!-- Left Side: Aligned with News Left Edge -->
-            <StackPanel Grid.Column="0" Orientation="Vertical" HorizontalAlignment="Left" Width="270" Margin="0,0,0,0">
+            <StackPanel HorizontalAlignment="Left"
+                        Orientation="Horizontal"
+                        Grid.ColumnSpan="4">
 
-                <!-- Play Button -->
-                <Grid Margin="0,-1,0,0" Width="270" Height="35">
-                    <local:CustomImageButton x:Name="PlayButton"
-                                     Width="270" Height="35"
-                                     NormalImageSource="pack://application:,,,/Resources/Images/play.jpg"
-                                     PressedImageSource="pack://application:,,,/Resources/Images/play_pressed.jpg"
-                                     Click="PlayButton_Click"/>
-                    <ProgressBar x:Name="DownloadProgressBar"
-                         Width="270" Height="35"
-                         HorizontalAlignment="Center"
-                         VerticalAlignment="Center"
-                         Minimum="0" Maximum="100" Value="0"
-                         Style="{StaticResource ImageFillProgressBarStyle}"
-                         Visibility="Collapsed"/>
-                </Grid>
+                <!-- First column: Play, Options, Loot buttons -->
+                <StackPanel Orientation="Vertical">
+                    <!-- Play Button -->
+                    <Grid HorizontalAlignment="Left" VerticalAlignment="Top">
+                        <local:BlankButtonWithText x:Name="PlayButton"
+                                                   Text="Action"
+                                                   Click="PlayButton_Click"
+                                                   TabIndex="0"/>
+                        <ProgressBar x:Name="DownloadProgressBar"
+                                     Value="0"
+                                     Style="{StaticResource ImageFillProgressBarStyle}"
+                                     Minimum="0"
+                                     Maximum="{Binding ActualWidth, ElementName=DownloadProgressBar, Mode=OneWay}"
+                                     Visibility="Hidden"/>
+                    </Grid>
 
-                <!-- Options and Loot Buttons -->
-                <Grid Width="270" Height="65" Margin="0,5,0,0">
-                    <local:CustomImageButton x:Name="LootButton"
-                                     Width="270" Height="28"
-                                     VerticalAlignment="Bottom"
-                                     Margin="0,-15,0,0"
-                                     Panel.ZIndex="0"
-                                     NormalImageSource="pack://application:,,,/Resources/Images/loot.jpg"
-                                     PressedImageSource="pack://application:,,,/Resources/Images/loot_pressed.jpg"
-                                     Command="{Binding OpenLootCommand}"/>
+                    <!-- Options and Loot Buttons -->
                     <local:CustomImageButton x:Name="OptionsButton"
-                                     Width="270" Height="35"
-                                     VerticalAlignment="Top"
-                                     Margin="0,3,0,0"
-                                     Panel.ZIndex="1"
-                                     NormalImageSource="pack://application:,,,/Resources/Images/options.jpg"
-                                     PressedImageSource="pack://application:,,,/Resources/Images/options_pressed.jpg"
-                                     Command="{Binding OpenOptionsCommand}"/>
-                </Grid>
+                                             Margin="0,8,0,0"
+                                             PressedImageSource="pack://application:,,,/Resources/Images/options_pressed.jpg"
+                                             NormalImageSource="pack://application:,,,/Resources/Images/options.jpg"
+                                             Command="{Binding OpenOptionsCommand}"
+                                             TabIndex="2"/>
+                    <local:CustomImageButton x:Name="LootButton"
+                                             PressedImageSource="pack://application:,,,/Resources/Images/loot_pressed.jpg"
+                                             NormalImageSource="pack://application:,,,/Resources/Images/loot.jpg"
+                                             Command="{Binding OpenLootCommand}"
+                                             TabIndex="3"/>
+                </StackPanel>
+
+                <!-- Second column: Cancel button and various progress text blocks -->
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Top">
+                    <!-- Cancel button -->
+                    <Grid Height="{Binding ActualHeight, ElementName=PlayButton, Mode=OneWay}"
+                          Margin="5,0,5,0"
+                          HorizontalAlignment="Left"
+                          VerticalAlignment="Top">
+                        <local:CustomImageButton x:Name="CancelButton"
+                                                 NormalImageSource="pack://application:,,,/Resources/Images/close.jpg"
+                                                 PressedImageSource="pack://application:,,,/Resources/Images/close_pressed.jpg"
+                                                 DisabledImageSource="pack://application:,,,/Resources/Images/close_disabled.png"
+                                                 HorizontalAlignment="Center"
+                                                 VerticalAlignment="Center"
+                                                 Click="CancelButton_Click"
+                                                 IsCancel="True"
+                                                 TabIndex="1"/>
+                    </Grid>
+
+                    <!-- Progress stats -->
+                    <StackPanel Width="120">
+                        <Grid Height="{Binding ActualHeight, ElementName=PlayButton, Mode=OneWay}">
+                            <TextBlock x:Name="ProgressLargeText"
+                                       Text="666/666"
+                                       FontSize="21"
+                                       FontFamily="{DynamicResource BlizzMedium}"
+                                       Foreground="{StaticResource GoldLighterBrush}"
+                                       VerticalAlignment="Center"
+                                       HorizontalAlignment="Left"/>
+                        </Grid>
+                        <TextBlock x:Name="ProgressSmallText1"
+                                   Margin="0,-4,0,0"
+                                   Text="666.66/666.66 MiB"
+                                   FontFamily="{DynamicResource BlizzMedium}"
+                                   Foreground="{StaticResource GoldLighterBrush}"/>
+                        <TextBlock x:Name="ProgressSmallText2"
+                                   Text="(666.66 MiB/s)"
+                                   FontFamily="{DynamicResource BlizzMedium}"
+                                   Foreground="{StaticResource GoldLighterBrush}"/>
+                    </StackPanel>
+                </StackPanel>
             </StackPanel>
 
             <!-- Right Side: Aligned with News Right Edge -->
-            <StackPanel Grid.Column="1" Orientation="Vertical" HorizontalAlignment="Right" Width="270" Margin="0,0,0,0">
+            <StackPanel Grid.Column="3" Orientation="Vertical" HorizontalAlignment="Right">
                 <!-- Donate Button -->
                 <local:CustomImageButton x:Name="DonateButton"
-                                 Width="270" Height="35" Margin="0,0,-2,1"
                                  NormalImageSource="pack://application:,,,/Resources/Images/donate.jpg"
                                  PressedImageSource="pack://application:,,,/Resources/Images/donate_pressed.jpg"
-                                 Click="DonateButton_Click"/>
+                                 Click="DonateButton_Click"
+                                 TabIndex="4" />
 
                 <!-- Donate Text Box -->
-                <StackPanel Width="270" Height="40" Margin="0,5,0,0">
+                <StackPanel Width="{Binding ActualWidth, ElementName=DonateButton, Mode=OneWay}" Margin="0,5,0,0">
                     <StackPanel.Background>
                         <SolidColorBrush Color="Black" Opacity="0.3" />
                     </StackPanel.Background>
@@ -208,28 +251,33 @@
                        FontFamily="{StaticResource BlizzLight}"/>
                 </StackPanel>
 
-                <!-- Beta + About -->
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,5,0,0">
+                <!-- Beta + Custom + About -->
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,5,0,0" VerticalAlignment="Top">
                     <Image x:Name="BetaNotification"
-                   Width="65" Height="20" Margin="0,0,10,2.5"
-                   Stretch="Fill"
-                   Source="pack://application:,,,/Resources/Images/btn_beta.jpg"
-                   Visibility="{Binding BetaVisibility}"/>
+                           Source="pack://application:,,,/Resources/Images/btn_beta.jpg"
+                           Visibility="{Binding BetaVisibility}"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"/>
+                    <Image Margin="5,0,0,0"
+                           Source="pack://application:,,,/Resources/Images/custom_notif.jpg"
+                           Visibility="{Binding CustomVisibility}"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"/>
                     <local:CustomImageButton x:Name="AboutButton"
-                                     Width="25" Height="25" Margin="0,-1,0,0"
-                                     NormalImageSource="pack://application:,,,/Resources/Images/btn_switch.jpg"
-                                     PressedImageSource="pack://application:,,,/Resources/Images/btn_switch_pressed.jpg"
-                                     Command="{Binding OpenAboutCommand}"/>
-                    <Image 
-                        Width="50" Height="15" Margin="5" 
-                        Source="pack://application:,,,/Resources/Images/custom_notif.jpg"
-                        Visibility="{Binding CustomVisibility}"/>
+                                             Margin="5,0,0,0"
+                                             NormalImageSource="pack://application:,,,/Resources/Images/btn_switch.jpg"
+                                             PressedImageSource="pack://application:,,,/Resources/Images/btn_switch_pressed.jpg"
+                                             DisabledImageSource="pack://application:,,,/Resources/Images/btn_switch_disabled.png"
+                                             Command="{Binding OpenAboutCommand}"
+                                             HorizontalAlignment="Center"
+                                             VerticalAlignment="Center"
+                                             TabIndex="5"/>
                 </StackPanel>
 
                 <!-- Version -->
                 <TextBlock x:Name="VersionText" Text="&lt;version&gt;"
                    HorizontalAlignment="Right"
-                   Margin="0,0,0,0"
+                   Margin="0,5,0,0"
                    Foreground="{StaticResource SoftWhite}"
                    FontFamily="{StaticResource BlizzMedium}"/>
             </StackPanel>
@@ -239,11 +287,9 @@
         <Image x:Name="UpdatesNotification"
                Focusable="False"
                Source="pack://application:,,,/Resources/Images/btn_no_updates3.jpg" Stretch="Fill"
-               Height="20"
-               Width="100"
                HorizontalAlignment="Left"
                VerticalAlignment="Bottom"
-               Margin="50,5,0,135"
+               Margin="50,0,0,130"
                Visibility="{Binding UpdatesNotificationVisibility}" />
 
         <!-- Wine indicator -->

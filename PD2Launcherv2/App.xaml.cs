@@ -11,6 +11,7 @@ using System.Net.Http;
 using System.Text;
 using System.Windows;
 using PD2Launcherv2.Utils;
+using PD2Shared.GameFileUpdate;
 using PD2Shared.Logging;
 using static PD2Shared.Logging.LoggingStatic;
 using PD2Shared.Utils;
@@ -64,7 +65,7 @@ namespace PD2Launcherv2
             services.AddSingleton<LaunchGameHelpers>();
             services.AddSingleton<NewsHelpers>();
             services.AddSingleton<DDrawHelpers>();
-            services.AddSingleton<GameFileUpdateHelpers>();
+            services.AddSingleton<GameFileUpdater>();
             services.AddSingleton<FileUpdateHelpers>(provider =>
             new FileUpdateHelpers( provider.GetRequiredService<HttpClient>()));
             services.AddTransient<OptionsViewModel>();
