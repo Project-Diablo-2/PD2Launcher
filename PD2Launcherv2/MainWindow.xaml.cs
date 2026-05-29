@@ -442,7 +442,6 @@ namespace PD2Launcherv2
 
         private void CloseButton_Click(object sender, RoutedEventArgs e)
         {
-            MainWindow_Closed(sender, e);
             this.Close();
         }
 
