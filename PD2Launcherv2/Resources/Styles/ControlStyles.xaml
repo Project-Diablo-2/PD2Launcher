@@ -257,7 +257,6 @@
     </Style>
 
     <Style x:Key="CustomVerticalScrollBar" TargetType="{x:Type ScrollBar}">
-        <Setter Property="Width" Value="10" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type ScrollBar}">
@@ -270,8 +269,7 @@
                         <RepeatButton Grid.Row="0" Command="ScrollBar.LineUpCommand" 
                                   Content="UP" 
                                   Background="Transparent"
-                                  Foreground="{StaticResource GoldBrush}" 
-                                  Width="10" Height="18">
+                                  Foreground="{StaticResource GoldBrush}">
                             <RepeatButton.ContentTemplate>
                                 <DataTemplate>
                                     <Image Source="pack://application:,,,/Resources/Images/thin_prev.jpg"/>
@@ -280,14 +278,13 @@
                         </RepeatButton>
                         <Track Grid.Row="1" Name="PART_Track" IsDirectionReversed="true">
                             <Track.Thumb>
-                                <Thumb Background="{StaticResource GoldBrush}" BorderBrush="Transparent" Width="10" />
+                                <Thumb Background="{StaticResource GoldBrush}" BorderBrush="Transparent"/>
                             </Track.Thumb>
                         </Track>
                         <RepeatButton Grid.Row="2" Command="ScrollBar.LineDownCommand" 
                                   Content="DOWN" 
                                   Background="Transparent"
-                                  Foreground="{StaticResource GoldBrush}" 
-                                  Width="10" Height="18">
+                                  Foreground="{StaticResource GoldBrush}">
                             <RepeatButton.ContentTemplate>
                                 <DataTemplate>
                                     <Image Source="pack://application:,,,/Resources/Images/thin_next.jpg"/>
