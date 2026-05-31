@@ -52,9 +52,9 @@
         public DownloadException(Exception? innerException = null, string? message = null) : base(innerException, message) { }
     }
 
-    // Download failed due to MD5 mismatch (rare)
-    public class DownloadMd5MismatchException : DownloadException
+    // Download failed due to hash mismatch (rare)
+    public class DownloadHashMismatchException : DownloadException
     {
-        public DownloadMd5MismatchException(Exception? innerException = null, string? message = null) : base(innerException, message) { }
+        public DownloadHashMismatchException(Exception? innerException = null, string? message = null) : base(innerException, message) { }
     }
 }

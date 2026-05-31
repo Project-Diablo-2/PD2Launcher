@@ -1,12 +1,10 @@
 ﻿using Newtonsoft.Json.Linq;
-using Org.BouncyCastle.Crypto.Digests;
 using Serilog.Events;
 using System.Buffers;
 using System.Collections.Immutable;
 using System.Data;
 using System.Diagnostics;
 using System.Net.Http.Headers;
-using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using PD2Shared.Extensions;
@@ -101,16 +99,15 @@ namespace PD2Shared.GameFileUpdate
             }
         }
 
-        private static async Task<byte[]> ComputeMd5Async(string path, long? sizeLimit, CancellationToken ct, IProgress<Tuple<long, long, long>>? progress = null)
+        private static async Task<Hash[]> ComputeHashesAsync(Digest[] digests, string path, long? sizeLimit, CancellationToken ct, IProgress<Tuple<long, long, long>>? progress = null)
         {
             int bufferSize = CalculateFileBufferSize(path);
 
             using var inStream = OpenReadFileStream(path, bufferSize);
-            using var md5 = MD5.Create();
 
-            if (progress == null)
+            if (progress == null && digests.Length == 1)
             {
-                return await md5.ComputeHashAsync(inStream, ct).ConfigureAwait(false);
+                return new Hash[] { await digests.First().HashStream(inStream, ct).ConfigureAwait(false) };
             }
             else
             {
@@ -125,10 +122,13 @@ namespace PD2Shared.GameFileUpdate
 
                     while ((bytesRead = await inStream.ReadAsync(buffer, 0, sizeToRead, ct).ConfigureAwait(false)) > 0)
                     {
-                        md5.TransformBlock(buffer, 0, bytesRead, outputBuffer: null, outputOffset: 0);
+                        foreach (var d in digests)
+                        {
+                            d.Update(buffer, 0, bytesRead);
+                        }
 
                         totalBytesRead += bytesRead;
-                        progress.Report(Tuple.Create<long, long, long>(bytesRead, totalBytesRead, sizeLimit != null ? sizeLimit.Value : inStream.Length));
+                        progress?.Report(Tuple.Create<long, long, long>(bytesRead, totalBytesRead, sizeLimit != null ? sizeLimit.Value : inStream.Length));
 
                         if (sizeLimit != null && totalBytesRead >= sizeLimit.Value)
                         {
@@ -136,9 +136,7 @@ namespace PD2Shared.GameFileUpdate
                         }
                     }
 
-                    md5.TransformFinalBlock(buffer, 0, 0);
-
-                    return md5.Hash!;
+                    return digests.Select(d => d.GetHash()).ToArray();
                 }
                 finally
                 {
@@ -156,15 +154,17 @@ namespace PD2Shared.GameFileUpdate
             //     "entries": {
             //       "BH-LICENSE.md": {
             //         "md5": "990edf479f989d2f07dd0d95dadfdc95",
-            //         "size": 35181
+            //         "size": 35181,
+            //         "xxh3": "1940485fe884a490"
             //       },
             //       "BH.dll": {
             //         "md5": "ecdf6624097328a390926b0dcddc2d79",
-            //         "size": 1423360
+            //         "size": 1423360,
+            //         "xxh3": "2753ec14b38fd8fa"
             //       },
             //       "binkw32.dll": {
             //         "md5": "f0c8199c01b623d97d6597f38e5b52a0",
-            //         "size": 200704
+            //         "size": null
             //       },
             //       [...]
             //     },
@@ -265,12 +265,6 @@ namespace PD2Shared.GameFileUpdate
 
         private static async Task<bool> SaveManifest(string path, ManifestEntry[] manifestEntries, CancellationToken ct)
         {
-            if (manifestEntries.Any(e => e.Size == null && !e.LooseValidation))
-            {
-                L.CallerWarning($"Manifest entry with {nameof(ManifestEntry.Size)} == null and {nameof(ManifestEntry.LooseValidation)} == {false} found. Refusing to save the manifest.");
-                return false;
-            }
-
             if (!manifestEntries.Any(e => e.Dirty))
             {
                 L.CallerDebug("No dirty manifest entries found. Skipping saving the manifest.");
@@ -409,10 +403,10 @@ namespace PD2Shared.GameFileUpdate
                 .ToArray();
         }
 
-        private static async Task<Tuple<bool, long?>> ValidateFileAsync(
+        private static async Task<Tuple<bool, long?, Xxh3Hash?>> ValidateFileAsync(
             string path,
             long? size,
-            byte[] md5Bytes,
+            Hash expectedHash,
             CancellationToken ct,
             bool looseValidation = false,
             bool sizeIsMinimumSize = false,
@@ -427,7 +421,7 @@ namespace PD2Shared.GameFileUpdate
             {
                 L.CallerWarning($"{path}: missing");
 
-                return Tuple.Create(false, (long?)null);
+                return Tuple.Create(false, (long?)null, (Xxh3Hash?)null);
             }
 
             (var actualSize, var ex) = await Env.TryGetFileSizeAsync(path).ConfigureAwait(false);
@@ -435,7 +429,7 @@ namespace PD2Shared.GameFileUpdate
             {
                 L.CallerError(ex, $"{nameof(Env.TryGetFileSizeAsync)}() for '{path}' failed.");
 
-                return Tuple.Create(false, (long?)null);
+                return Tuple.Create(false, (long?)null, (Xxh3Hash?)null);
             }
 
             Debug.Assert(actualSize != null);
@@ -451,7 +445,7 @@ namespace PD2Shared.GameFileUpdate
                         // Partial download cannot be smaller than declared in PartialDownload
                         L.CallerWarning($"{path}: partial size mismatch: {size.Value} > {actualSize.Value} (actual)");
 
-                        return Tuple.Create(false, actualSize);
+                        return Tuple.Create(false, actualSize, (Xxh3Hash ?)null);
                     }
                     else
                     {
@@ -468,13 +462,13 @@ namespace PD2Shared.GameFileUpdate
                         // If the file exists and has non-zero size -- that's good enough
                         L.CallerDebug($"{path}: loosely validated: {actualSize.Value} (actual)");
 
-                        return Tuple.Create(true, actualSize);
+                        return Tuple.Create(true, actualSize, (Xxh3Hash ?)null);
                     }
                     else
                     {
                         L.CallerWarning($"{path}: failed loose validation (empty file)");
 
-                        return Tuple.Create(false, actualSize);
+                        return Tuple.Create(false, actualSize, (Xxh3Hash?)null);
                     }
                 }
                 else
@@ -483,19 +477,51 @@ namespace PD2Shared.GameFileUpdate
                     {
                         L.CallerWarning($"{path}: size mismatch: {size.Value} != {actualSize.Value} (actual)");
 
-                        return Tuple.Create(false, actualSize);
+                        return Tuple.Create(false, actualSize, (Xxh3Hash?)null);
                     }
                 }
             }
 
-            var md5matches = (await ComputeMd5Async(path, sizeLimit: sizeIsMinimumSize ? size : (long?)null, ct, progress).ConfigureAwait(false)).SequenceEqual(md5Bytes);
+            List<DisposableDigest> digests = new(2);
 
-            if (!md5matches)
+            try
             {
-                L.CallerWarning($"{path}: MD5 mismatch");
-            }
+                // Attempt to pick either DisposableMd5 or DisposableXxh3 digests.
+                //
+                // DisposableMd5 is significantly faster than NonFinalizingMd5 as it's merely a wrapper around native implementation (System.Security.Cryptography).
+                // Meanwhile, NonFinalizingMd5 is a wrapper around BouncyCastle, which is purely managed code.
+                //
+                // Since performance matters in this scenario and there's no use for the digest to be non-finalizing, go with the disposable variant.
+                digests.Add(Digest.GetDisposable(expectedHash));
 
-            return Tuple.Create(md5matches, actualSize);
+                L.CallerVerbose($"{path}: validating against {expectedHash.Name} using {digests.First().GetType().Name}...");
+
+                // If not validating against XXH3, make sure to compute one as well (and add it as the last element to be returned in the end)
+                if (!digests.First().IsHashType<Xxh3Hash>())
+                {
+                    digests.Add(new DisposableXxh3());
+                }
+
+                Hash[] hashes = await ComputeHashesAsync(digests.ToArray(), path, sizeLimit: sizeIsMinimumSize ? size : (long?)null, ct, progress).ConfigureAwait(false);
+
+                if (hashes.First() == expectedHash)
+                {
+                    return Tuple.Create(true, actualSize, (Xxh3Hash?)hashes.Last());
+                }
+                else
+                {
+                    L.CallerWarning($"{path}: {digests.First().HashName} mismatch");
+
+                    return Tuple.Create(false, actualSize, (Xxh3Hash?)null);
+                }
+            }
+            finally
+            {
+                foreach (var d in digests)
+                {
+                    d.Dispose();
+                }
+            }
         }
 
         private static async Task ValidateFilesAsync(
@@ -559,14 +585,14 @@ namespace PD2Shared.GameFileUpdate
 
                 string path = validationKind.IsDownloadFiles() ? f.DownloadPath : f.InstallPath;
                 long? expectedSize = validatingPartialDownload ? f.PartialDownload!.PartialSize : f.ManifestEntry.Size;
-                byte[] expectedMd5Bytes = validatingPartialDownload ? f.PartialDownload!.PartialMd5Bytes : f.ManifestEntry.Md5Bytes;
+                Hash expectedHash = validatingPartialDownload ? f.PartialDownload!.PartialXxh3Hash : f.ManifestEntry.BestHash;
 
                 var doingLooseValidation = validationKind.IsInstallFiles() && f.ManifestEntry.LooseValidation;
 
-                (bool validationSucceeded, long? actualSize) = await ValidateFileAsync(
+                (bool validationSucceeded, long? actualSize, Xxh3Hash? xxh3Hash) = await ValidateFileAsync(
                     path,
                     expectedSize,
-                    expectedMd5Bytes,
+                    expectedHash,
                     ct,
                     doingLooseValidation,
                     sizeIsMinimumSize: validatingPartialDownload,
@@ -612,6 +638,7 @@ namespace PD2Shared.GameFileUpdate
                     if (!doingLooseValidation && !validatingPartialDownload)
                     {
                         Debug.Assert(actualSize != null);
+                        Debug.Assert(xxh3Hash is not null);
 
                         if (f.ManifestEntry.Size != actualSize)
                         {
@@ -628,10 +655,20 @@ namespace PD2Shared.GameFileUpdate
                                 var fromSizeStr = Formatting.FormatSizeInMiB(f.ManifestEntry.Size.Value, appendUnits: false);
                                 var toSizeStr = Formatting.FormatSizeInMiB(actualSize.Value);
 
-                                L.CallerWarning($"{path}: updating Size in manifest {f.ManifestEntry.Size} -> {actualSize} bytes ({fromSizeStr} -> {toSizeStr})");
+                                L.CallerWarning($"{path}: updating {nameof(f.ManifestEntry.Size)} in manifest: {f.ManifestEntry.Size} -> {actualSize} bytes ({fromSizeStr} -> {toSizeStr})");
                             }
 
                             f.ManifestEntry.Size = actualSize.Value;
+                        }
+
+                        if (f.ManifestEntry.Xxh3Hash != xxh3Hash)
+                        {
+                            if (f.ManifestEntry.Xxh3Hash != null)
+                            {
+                                L.CallerWarning($"{path}: updating {nameof(f.ManifestEntry.Xxh3Hash)} in manifest");
+                            }
+
+                            f.ManifestEntry.Xxh3Hash = xxh3Hash;
                         }
                     }
                 }
@@ -777,7 +814,8 @@ namespace PD2Shared.GameFileUpdate
             HttpClient httpClient,
             string url,
             string destinationPath,
-            byte[] expectedMd5bytes,
+            Md5Hash referenceMd5Hash,
+            Hash expectedHash,
             CancellationToken ct,
             PartialDownload? downloadToResume = null,
             IProgress<Tuple<long, long, long?>>? progress = null)
@@ -789,7 +827,9 @@ namespace PD2Shared.GameFileUpdate
                 request.Headers.Range = new RangeHeaderValue(downloadToResume.PartialSize, (long?)null);
             }
 
-            MD5Digest md5 = new();
+            Hash actualExpectedHash = null!;
+            NonFinalizingDigest digest = null!;
+            NonFinalizingXxh3 xxh3Digest = null!;
             long totalBytesWritten = 0;
 
             try
@@ -806,7 +846,9 @@ namespace PD2Shared.GameFileUpdate
                 {
                     L.CallerDebug($"{url}: resuming download at {downloadToResume!.PartialSize} ({Formatting.FormatSizeInMiB(downloadToResume.PartialSize)})...");
 
-                    md5 = new MD5Digest(downloadToResume!.Md5Digest);
+                    actualExpectedHash = downloadToResume!.ExpectedHash;
+                    digest = downloadToResume!.Digest;
+                    xxh3Digest = downloadToResume!.Xxh3Digest;
                     totalBytesWritten = downloadToResume!.PartialSize;
                 }
                 else
@@ -820,9 +862,13 @@ namespace PD2Shared.GameFileUpdate
                         L.CallerDebug($"{url}: downloading...");
                     }
 
-                    md5 = new MD5Digest();
+                    actualExpectedHash = expectedHash;
+                    digest = Digest.GetNonFinalizing(actualExpectedHash);
+                    xxh3Digest = digest.IsHashType<Xxh3Hash>() ? (NonFinalizingXxh3)digest : new NonFinalizingXxh3();
                     totalBytesWritten = 0;
                 }
+
+                L.CallerVerbose($"{url}: validating against {actualExpectedHash.Name} using {digest.GetType().Name}...");
 
                 using var inStream = await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
 
@@ -851,18 +897,22 @@ namespace PD2Shared.GameFileUpdate
                         {
                             await outStream.WriteAsync(buffer, 0, bytesRead, ct).ConfigureAwait(false);
 
-                            md5.BlockUpdate(buffer, 0, bytesRead);
+                            digest.Update(buffer, 0, bytesRead);
+                            if (digest != xxh3Digest)
+                            {
+                                xxh3Digest.Update(buffer, 0, bytesRead);
+                            }
                             totalBytesWritten += bytesRead;
                             progress?.Report(Tuple.Create<long, long, long?>(bytesRead, totalBytesWritten, totalFileSize));
                         }
 
-                        if (!md5.DoFinalAndReturn().SequenceEqual(expectedMd5bytes))
+                        if (digest.GetHash() != actualExpectedHash)
                         {
-                            L.CallerError($"{url}: MD5 mismatch");
-                            throw new DownloadMd5MismatchException();
+                            L.CallerError($"{url}: {digest.HashName} mismatch");
+                            throw new DownloadHashMismatchException(innerException: null, digest.HashName);
                         }
 
-                        return new DownloadResult();
+                        return new DownloadResult((Xxh3Hash)xxh3Digest.GetHash());
                     }
                     finally
                     {
@@ -879,10 +929,15 @@ namespace PD2Shared.GameFileUpdate
 
                 if (totalBytesWritten > 0)
                 {
-                    MD5Digest md5Copy = new(md5);
-
                     L.CallerWrite(logEventLevel, $"{url}: download {stateStr} at {totalBytesWritten} ({Formatting.FormatSizeInMiB(totalBytesWritten)})");
-                    return new DownloadResult(ex, totalBytesWritten, md5.DoFinalAndReturn(), expectedMd5bytes, md5Copy);
+                    return new DownloadResult(
+                        ex,
+                        totalBytesWritten,
+                        (Xxh3Hash)xxh3Digest.GetHash(),
+                        xxh3Digest,
+                        referenceMd5Hash,
+                        digest,
+                        actualExpectedHash);
                 }
                 else
                 {
@@ -1065,7 +1120,8 @@ namespace PD2Shared.GameFileUpdate
                         httpClient,
                         f.Url,
                         f.DownloadPath,
-                        f.ManifestEntry.Md5Bytes,
+                        f.ManifestEntry.Md5Hash,
+                        f.ManifestEntry.BestHash,
                         ct,
                         f.PartialDownload,
                         new DirectProgress<Tuple<long, long, long?>>(t =>
@@ -1093,7 +1149,7 @@ namespace PD2Shared.GameFileUpdate
                                             var fromSizeStr = Formatting.FormatSizeInMiB(f.ManifestEntry.Size.Value, appendUnits: false);
                                             var toSizeStr = Formatting.FormatSizeInMiB(totalFileSize.Value);
 
-                                            L.CallerWarning($"{f.ManifestEntry.Path}: updating Size in manifest {f.ManifestEntry.Size} -> {totalFileSize} bytes ({fromSizeStr} -> {toSizeStr})");
+                                            L.CallerWarning($"{f.ManifestEntry.Path}: updating {nameof(f.ManifestEntry.Size)} in manifest: {f.ManifestEntry.Size} -> {totalFileSize} bytes ({fromSizeStr} -> {toSizeStr})");
                                         }
 
                                         f.ManifestEntry.Size = totalFileSize;
@@ -1136,6 +1192,16 @@ namespace PD2Shared.GameFileUpdate
                     }
                     else
                     {
+                        if (f.ManifestEntry.Xxh3Hash != f.DownloadResult.Xxh3Hash)
+                        {
+                            if (f.ManifestEntry.Xxh3Hash != null)
+                            {
+                                L.CallerWarning($"{f.ManifestEntry.Path}: updating {nameof(f.ManifestEntry.Xxh3Hash)} in manifest");
+                            }
+
+                            f.ManifestEntry.Xxh3Hash = f.DownloadResult.Xxh3Hash;
+                        }
+
                         lock (totalsLock)
                         {
                             ++totalFilesDownloaded;
@@ -1439,10 +1505,11 @@ namespace PD2Shared.GameFileUpdate
                             continue;
                         }
 
-                        if (e.meta.Md5Bytes.SequenceEqual(e.mani.Md5Bytes))
+                        if (e.meta.Md5Hash == e.mani.Md5Hash)
                         {
                             ++reusedMetadataEntries;
                             e.meta.Size = e.mani.Size;
+                            e.meta.Xxh3Hash = e.mani.Xxh3Hash;
                             e.meta.Dirty = false;
                         }
                         else
@@ -1493,7 +1560,7 @@ namespace PD2Shared.GameFileUpdate
                 // Verify that PartialDownloads refer to the exact files present in the manifest (in case of metadata update occurring between cancel/resume)
                 foreach (var d in workItems)
                 {
-                    if (d.PartialDownload?.ReferenceMd5Bytes.SequenceEqual(d.ManifestEntry.Md5Bytes) == false)
+                    if (d.PartialDownload != null && d.PartialDownload.ReferenceMd5Hash != d.ManifestEntry.Md5Hash)
                     {
                         L.CallerWarning($"{d.ManifestEntry.Path}: partial download refers to a different version of the file. Discarding...");
 

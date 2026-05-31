@@ -8,14 +8,16 @@ namespace PD2Shared.GameFileUpdate.Internal
         internal class Entry
         {
             [JsonConstructor]
-            public Entry(string md5, long? size)
+            public Entry(string md5, long? size, string? xxh3)
             {
                 Md5 = md5;
                 Size = size;
+                Xxh3 = xxh3;
             }
 
             public string Md5 { get; }
             public long? Size { get; }
+            public string? Xxh3 { get; }
         }
 
         public SerializableManifest(ManifestEntry[] manifestEntries)

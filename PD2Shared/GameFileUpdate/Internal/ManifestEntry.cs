@@ -10,22 +10,20 @@ namespace PD2Shared.GameFileUpdate.Internal
         // <!> The file list provided by Constants.excludedFiles might be too broad, but stick with it for now...
         private static readonly HashSet<string> LooseValidationFileSet = new(Constants.excludedFiles, StringComparer.OrdinalIgnoreCase);
 
-        public ManifestEntry(string path, string md5, long? size = null)
+        public ManifestEntry(string path, string md5, long? size = null, string? xxh3 = null)
         {
             this.Path = path;
             this.LooseValidation = LooseValidationFileSet.Contains(this.Path);
-            this.Md5Bytes = Md5BytesFromHexString(md5);
-            this.Md5 = md5;
-            this.Size = size; // Implicitly sets Dirty = true
+            this.Md5Hash = new Md5Hash(md5);
+
+            // These implicitly set Dirty = true
+
+            this.Size = size;
+            this.Xxh3Hash = xxh3 == null ? (Xxh3Hash?)null : new Xxh3Hash(xxh3);
         }
 
-        public ManifestEntry(string path, SerializableManifest.Entry entry) : this(path, entry.Md5, entry.Size)
+        public ManifestEntry(string path, SerializableManifest.Entry entry) : this(path, entry.Md5, entry.Size, entry.Xxh3)
         {
-            if (!this.LooseValidation && this.Size == null)
-            {
-                throw new InvalidOperationException($"Cannot deserialize {nameof(ManifestEntry)} with {nameof(entry.Size)} == null and {nameof(LooseValidation)} == {this.LooseValidation}.");
-            }
-
             this.Dirty = false;
         }
 
@@ -52,9 +50,8 @@ namespace PD2Shared.GameFileUpdate.Internal
             }
         }
         public bool LooseValidation { get; }
-        public byte[] Md5Bytes { get; }
 
-        private string Md5 { get; }
+        public Md5Hash Md5Hash { get; }
 
         private long? _size;
         public long? Size
@@ -77,41 +74,32 @@ namespace PD2Shared.GameFileUpdate.Internal
             }
         }
 
+        private Xxh3Hash? _xxh3Hash = null;
+        public Xxh3Hash? Xxh3Hash
+        {
+            get => _xxh3Hash;
+            set
+            {
+                if (_xxh3Hash == value)
+                {
+                    return;
+                }
+
+                _xxh3Hash = value;
+                Dirty = true;
+            }
+        }
+
+        public Hash BestHash
+        {
+            get => Xxh3Hash != null ? Xxh3Hash : Md5Hash;
+        }
+
         public bool Dirty { get; set; }
 
         public SerializableManifest.Entry ToSerializable()
         {
-            // Files that cannot be loosely validated need to have a Size
-            if (!this.LooseValidation && this.Size == null)
-            {
-                throw new InvalidOperationException($"Cannot serialize {nameof(ManifestEntry)} with unspecified {nameof(Size)} when {nameof(LooseValidation)} is {this.LooseValidation}.");
-            }
-
-            return new SerializableManifest.Entry(this.Md5, this.Size);
-        }
-
-        private static byte[] Md5BytesFromHexString(string md5String)
-        {
-            ArgumentNullException.ThrowIfNull(md5String, nameof(md5String));
-
-            byte[] res;
-
-            try
-            {
-                res = Convert.FromHexString(md5String);
-            }
-            catch (FormatException ex)
-            {
-                throw new ArgumentException($"Not a valid MD5 hash: '{md5String}'", nameof(md5String), ex);
-            }
-
-            // MD5 hashes are 128 bits long
-            if (res.Length != (128 / 8))
-            {
-                throw new ArgumentException($"Not a valid MD5 hash: '{md5String}'", nameof(md5String));
-            }
-
-            return res;
+            return new SerializableManifest.Entry(this.Md5Hash.ToHexString(), this.Size, this.Xxh3Hash?.ToHexString());
         }
     }
 }
