@@ -61,6 +61,11 @@ namespace PD2Shared.GameFileUpdate
             };
         }
 
+        private static void LogManifestStats(ManifestEntry[] manifestEntries)
+        {
+            L.CallerDebug($"{manifestEntries.Count(e => e.Size != null)}/{manifestEntries.Length} sizes; {manifestEntries.Count(e => e.Xxh3Hash != null)}/{manifestEntries.Length} XXH3s");
+        }
+
         private static async Task CopyFileAsync(string sourcePath, string destinationPath, CancellationToken ct, IProgress<Tuple<long, long, long>>? progress = null)
         {
             int bufferSize = CalculateFileBufferSize(sourcePath);
@@ -303,6 +308,8 @@ namespace PD2Shared.GameFileUpdate
             {
                 e.Dirty = false;
             }
+
+            LogManifestStats(manifestEntries);
 
             return true;
         }
@@ -1522,6 +1529,7 @@ namespace PD2Shared.GameFileUpdate
                     ctx.manifestEntries = metadataEntries;
 
                     L.CallerInformation($"Final manifest entries: {metadataEntries.Length} ({newMetadataEntries} new, {reusedMetadataEntries} reused, {updatedMetadataEntries} updated)");
+                    LogManifestStats(ctx.manifestEntries);
                 }
 
                 // Based on successful metadata download, indicate whether we think we're offline or not
