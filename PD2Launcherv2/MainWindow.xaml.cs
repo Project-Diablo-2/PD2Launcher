@@ -692,6 +692,8 @@ namespace PD2Launcherv2
             UpdateProgressValues(new ProgressValues().Clear().Extract());
             DownloadProgressBar.Visibility = Visibility.Visible;
             AboutButton.IsEnabled = false;
+            OptionsButton.IsEnabled = false;
+            LootButton.IsEnabled = false;
         }
 
         [MemberNotNull(nameof(_playButtonText))]
@@ -699,6 +701,8 @@ namespace PD2Launcherv2
         {
             _progressCookie.Advance();
 
+            LootButton.IsEnabled = true;
+            OptionsButton.IsEnabled = true;
             AboutButton.IsEnabled = true;
             CancelButton.Visibility = Visibility.Hidden;
             CancelButton.IsEnabled = true;
