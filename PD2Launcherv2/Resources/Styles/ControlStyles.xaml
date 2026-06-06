@@ -133,8 +133,9 @@
                         </Grid>
                     </Border>
                     <ControlTemplate.Triggers>
+                        <!-- Common triggers -->
+
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter TargetName="img" Property="Source" Value="pack://application:,,,/Resources/Images/blank_pressed.png"/>
                             <Setter TargetName="text" Property="Margin" Value="-4,0,0,-6"/>
                             <Setter TargetName="text" Property="Effect">
                                 <Setter.Value>
@@ -149,7 +150,6 @@
                             </Setter>
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
-                            <Setter TargetName="img" Property="Source" Value="pack://application:,,,/Resources/Images/blank_disabled.png"/>
                             <Setter TargetName="text" Property="Effect">
                                 <Setter.Value>
                                     <DropShadowEffect
@@ -161,6 +161,122 @@
                                 </Setter.Value>
                             </Setter>
                         </Trigger>
+
+                        <!-- Normal ButtonKind -->
+
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="ButtonKind" Value="Normal" />
+                                <Condition Property="IsPressed" Value="True" />
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="img" Property="Source" Value="pack://application:,,,/Resources/Images/blank_pressed.png"/>
+                        </MultiTrigger>
+
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="ButtonKind" Value="Normal" />
+                                <Condition Property="IsEnabled" Value="False" />
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="img" Property="Source" Value="pack://application:,,,/Resources/Images/blank_disabled.png"/>
+                        </MultiTrigger>
+
+                        <!-- SplitTop ButtonKind -->
+
+                        <!-- Overrides -->
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="ButtonKind" Value="SplitTop" />
+                                <Condition Property="IsEnabled" Value="True" />
+                                <Condition Property="IsPressed" Value="False" />
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="img" Property="Source" Value="pack://application:,,,/Resources/Images/blank_split_top.png"/>
+                        </MultiTrigger>
+
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="ButtonKind" Value="SplitTop" />
+                                <Condition Property="IsPressed" Value="True" />
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="img" Property="Source" Value="pack://application:,,,/Resources/Images/blank_split_top_pressed.png"/>
+                        </MultiTrigger>
+
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="ButtonKind" Value="SplitTop" />
+                                <Condition Property="IsEnabled" Value="False" />
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="img" Property="Source" Value="pack://application:,,,/Resources/Images/blank_split_top_disabled.png"/>
+                        </MultiTrigger>
+
+                        <!-- SplitBottom ButtonKind -->
+
+                        <!-- Overrides -->
+                        <Trigger Property="ButtonKind" Value="SplitBottom">
+                            <Setter TargetName="text" Property="FontSize" Value="15"/>
+                            <Setter TargetName="text" Property="Margin" Value="0,0,0,2"/>
+                            <Setter TargetName="text" Property="Effect">
+                                <Setter.Value>
+                                    <DropShadowEffect
+                                                  RenderingBias="Quality"
+                                                  Color="#FFCCCCCC"
+                                                  BlurRadius="1.5"
+                                                  ShadowDepth="1.5"
+                                                  Opacity="0.75"
+                                                  Direction="315" />
+                                </Setter.Value>
+                            </Setter>
+                        </Trigger>
+
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="ButtonKind" Value="SplitBottom" />
+                                <Condition Property="IsEnabled" Value="True" />
+                                <Condition Property="IsPressed" Value="False" />
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="img" Property="Source" Value="pack://application:,,,/Resources/Images/blank_split_bottom.png"/>
+                        </MultiTrigger>
+
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="ButtonKind" Value="SplitBottom" />
+                                <Condition Property="IsPressed" Value="True" />
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="img" Property="Source" Value="pack://application:,,,/Resources/Images/blank_split_bottom_pressed.png"/>
+                            <!-- Overrides -->
+                            <Setter TargetName="text" Property="Margin" Value="-4,0,0,-2"/>
+                            <Setter TargetName="text" Property="Effect">
+                                <Setter.Value>
+                                    <DropShadowEffect
+                                                  RenderingBias="Quality"
+                                                  Color="#FFCCCCCC"
+                                                  BlurRadius="1.5"
+                                                  ShadowDepth="1.5"
+                                                  Opacity="0.5"
+                                                  Direction="315" />
+                                </Setter.Value>
+                            </Setter>
+                        </MultiTrigger>
+
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="ButtonKind" Value="SplitBottom" />
+                                <Condition Property="IsEnabled" Value="False" />
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="img" Property="Source" Value="pack://application:,,,/Resources/Images/blank_split_bottom_disabled.png"/>
+                            <!-- Overrides -->
+                            <Setter TargetName="text" Property="Effect">
+                                <Setter.Value>
+                                    <DropShadowEffect
+                                                  RenderingBias="Quality"
+                                                  Color="#FFA0A0A0"
+                                                  BlurRadius="2.0"
+                                                  ShadowDepth="1.5"
+                                                  Opacity="0.75"
+                                                  Direction="315" />
+                                </Setter.Value>
+                            </Setter>
+                        </MultiTrigger>
+
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>
