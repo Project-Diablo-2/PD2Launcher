@@ -24,7 +24,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="Resources\Fonts\exocet-blizzard-heavy.otf" />
+    <None Remove="Resources\Fonts\exocet-blizzard-heavy.ttf" />
     <None Remove="Resources\Fonts\exocet-blizzard-light.ttf" />
     <None Remove="Resources\Fonts\exocet-blizzard-medium.ttf" />
     <None Remove="Resources\Icons\icon.ico" />
@@ -81,7 +81,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Resource Include="Resources\Fonts\exocet-blizzard-heavy.otf" />
+    <Resource Include="Resources\Fonts\exocet-blizzard-heavy.ttf" />
     <Resource Include="Resources\Fonts\exocet-blizzard-light.ttf" />
     <Resource Include="Resources\Fonts\exocet-blizzard-medium.ttf" />
     <Resource Include="Resources\Icons\icon.ico" />
