@@ -57,13 +57,9 @@
     <None Remove="Resources\Images\custom_notif.jpg" />
     <None Remove="Resources\Images\empty_button.png" />
     <None Remove="Resources\Images\logo.gif" />
-    <None Remove="Resources\Images\loot.jpg" />
-    <None Remove="Resources\Images\loot_pressed.jpg" />
     <None Remove="Resources\Images\minimize.jpg" />
     <None Remove="Resources\Images\minimize_pressed.jpg" />
     <None Remove="Resources\Images\offline24.png" />
-    <None Remove="Resources\Images\options.jpg" />
-    <None Remove="Resources\Images\options_pressed.jpg" />
     <None Remove="Resources\Images\thin_next.jpg" />
     <None Remove="Resources\Images\thin_prev.jpg" />
     <None Remove="Resources\Images\winelogo16.png" />
@@ -118,13 +114,9 @@
     <Resource Include="Resources\Images\close_pressed.jpg" />
     <Resource Include="Resources\Images\empty_button.png" />
     <Resource Include="Resources\Images\logo.gif" />
-    <Resource Include="Resources\Images\loot.jpg" />
-    <Resource Include="Resources\Images\loot_pressed.jpg" />
     <Resource Include="Resources\Images\minimize.jpg" />
     <Resource Include="Resources\Images\minimize_pressed.jpg" />
     <Resource Include="Resources\Images\offline24.png" />
-    <Resource Include="Resources\Images\options.jpg" />
-    <Resource Include="Resources\Images\options_pressed.jpg" />
     <Resource Include="Resources\Images\thin_next.jpg" />
     <Resource Include="Resources\Images\thin_prev.jpg" />
     <Resource Include="Resources\Images\winelogo16.png" />

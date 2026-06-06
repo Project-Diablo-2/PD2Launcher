@@ -164,6 +164,7 @@
                     <!-- Play Button -->
                     <Grid HorizontalAlignment="Left" VerticalAlignment="Top">
                         <local:BlankButtonWithText x:Name="PlayButton"
+                                                   ButtonKind="Normal"
                                                    Text="Action"
                                                    Click="PlayButton_Click"
                                                    TabIndex="0"/>
@@ -176,17 +177,17 @@
                     </Grid>
 
                     <!-- Options and Loot Buttons -->
-                    <local:CustomImageButton x:Name="OptionsButton"
-                                             Margin="0,8,0,0"
-                                             PressedImageSource="pack://application:,,,/Resources/Images/options_pressed.jpg"
-                                             NormalImageSource="pack://application:,,,/Resources/Images/options.jpg"
-                                             Command="{Binding OpenOptionsCommand}"
-                                             TabIndex="2"/>
-                    <local:CustomImageButton x:Name="LootButton"
-                                             PressedImageSource="pack://application:,,,/Resources/Images/loot_pressed.jpg"
-                                             NormalImageSource="pack://application:,,,/Resources/Images/loot.jpg"
-                                             Command="{Binding OpenLootCommand}"
-                                             TabIndex="3"/>
+                    <local:BlankButtonWithText x:Name="OptionsButton"
+                                               ButtonKind="SplitTop"
+                                               Text="Options"
+                                               Margin="0,8,0,0"
+                                               Command="{Binding OpenOptionsCommand}"
+                                               TabIndex="2"/>
+                    <local:BlankButtonWithText x:Name="LootButton"
+                                               ButtonKind="SplitBottom"
+                                               Text="Item filter profiles"
+                                               Command="{Binding OpenLootCommand}"
+                                               TabIndex="3"/>
                 </StackPanel>
 
                 <!-- Second column: Cancel button and various progress text blocks -->
