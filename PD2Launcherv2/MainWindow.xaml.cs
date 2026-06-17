@@ -60,6 +60,8 @@ namespace PD2Launcherv2
 
         private KeyComboDown _keyComboDown = KeyComboDown.Play;
 
+        private readonly ProgressCookie _progressCookie = new();
+
         TextBlock? _progressTotalText = null;
         TextBlock? _progressFileCountText = null;
         TextBlock? _progressBytesText = null;
@@ -407,9 +409,9 @@ namespace PD2Launcherv2
                                 updateMode,
                                 UseHttp2,
                                 _localStorage.LoadSection<FileUpdateModel>(StorageKey.FileUpdateModel),
-                                new Progress<ProgressValues.IData>(UpdateProgressValues),
-                                new Progress<string>(UpdatePlayButtonText),
-                                new Progress<bool>(ToggleProgressErrorIndicator),
+                                new ProgressWithCookie<ProgressValues.IData>(_progressCookie, UpdateProgressValues),
+                                new ProgressWithCookie<string>(_progressCookie, UpdatePlayButtonText),
+                                new ProgressWithCookie<bool>(_progressCookie, ToggleProgressErrorIndicator),
                                 _currentCts.Token);
                         }
                         catch (OperationCanceledException ex) when (ex.CancellationToken == _currentCts.Token)
@@ -687,6 +689,8 @@ namespace PD2Launcherv2
         [MemberNotNull(nameof(_playButtonText))]
         private void ResetUI()
         {
+            _progressCookie.Advance();
+
             AboutButton.IsEnabled = true;
             CancelButton.Visibility = Visibility.Hidden;
             CancelButton.IsEnabled = true;
