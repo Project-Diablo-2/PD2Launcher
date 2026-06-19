@@ -1,0 +1,102 @@
+﻿using System.Windows;
+using PD2Launcherv2.Utils;
+using PD2Shared.Logging;
+using static PD2Shared.Logging.LoggingStatic;
+using PD2Shared.Utils;
+
+namespace PD2Launcherv2
+{
+    internal static class SanityChecks
+    {
+        private static bool FailurePrompt(string message)
+        {
+            if (MsgBox.Warn(
+                message + "\n" +
+                "\n" +
+                "Continue regardless?",
+                MessageBoxButton.YesNo,
+                MessageBoxResult.No) == MessageBoxResult.No)
+            {
+                return false;
+            }
+
+            L.CallerWarning("User ignored sanity check failure.");
+            return true;
+        }
+
+        private static bool CheckIfDirectoriesWritable()
+        {
+            {
+                string dirPath = Env.ProcessDirPath;
+
+                var ex = Env.CheckIfDirectoryIsWritable(dirPath);
+
+                if (ex != null)
+                {
+                    L.CallerWarning(ex, $"Launcher directory '{dirPath}' is not writable.");
+
+                    if (!FailurePrompt(
+                        $"Launcher directory '{dirPath}' is not writable.\n" +
+                        "\n" +
+                        "This can lead to unexpected issues."))
+                    {
+                        return false;
+                    }
+                }
+                else
+                {
+                    L.CallerInformation($"Launcher directory '{dirPath}' is writable.");
+                }
+            }
+
+            {
+                string dirPath = Env.GetCwd();
+
+                var ex = Env.CheckIfDirectoryIsWritable(dirPath);
+
+                if (ex != null)
+                {
+                    L.CallerWarning(ex, $"Launcher working directory '{dirPath}' is not writable.");
+
+                    if (!FailurePrompt(
+                        $"Launcher working directory '{dirPath}' is not writable.\n" +
+                        "\n" +
+                        "This can lead to unexpected issues."))
+                    {
+                        return false;
+                    }
+                }
+                else
+                {
+                    L.CallerInformation($"Launcher working directory '{dirPath}' is writable.");
+                }
+            }
+
+            return true;
+        }
+
+        public static bool Run()
+        {
+            List<Func<bool>> sanityChecks = new()
+            {
+                () => CheckIfDirectoriesWritable(),
+            };
+
+            using LoggedScope loggedScope = new($"Running {sanityChecks.Count} sanity check(s)...");
+
+            for (int i = 0; i < sanityChecks.Count; ++i)
+            {
+                var check = sanityChecks[i];
+
+                L.CallerInformation($"> {i + 1}/{sanityChecks.Count}");
+
+                if (!check())
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+    }
+}

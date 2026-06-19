@@ -14,7 +14,6 @@ using PD2Launcherv2.Utils;
 using PD2Shared.GameFileUpdate;
 using PD2Shared.Logging;
 using static PD2Shared.Logging.LoggingStatic;
-using PD2Shared.Utils;
 
 [assembly: System.Runtime.CompilerServices.RuntimeCompatibilityAttribute(WrapNonExceptionThrows = true)]
 
@@ -151,9 +150,9 @@ namespace PD2Launcherv2
 
             L.CallerInformation($"Using up to {Environment.ProcessorCount} concurrent task(s)");
 
-            if (!PerformSanityChecks())
+            if (!SanityChecks.Run())
             {
-                L.CallerInformation($"{nameof(PerformSanityChecks)}() failed and user declined to continue.");
+                L.CallerInformation($"Sanity checks failed and user declined to continue.");
 
                 this.Shutdown(1);
                 return;
@@ -222,45 +221,6 @@ namespace PD2Launcherv2
                     Debug.WriteLine($"Failed to delete temp file: {ex.Message}");
                 }
             }
-        }
-
-        private static bool PerformSanityChecks()
-        {
-            bool CheckIfDirIsWritable(string dirPath, string errorPattern)
-            {
-                var ex = Env.CheckIfDirectoryIsWritable(dirPath);
-
-                if (ex != null)
-                {
-                    var messagePart = string.Format(errorPattern, dirPath);
-
-                    L.CallerWarning(ex, $"{nameof(Env.CheckIfDirectoryIsWritable)}() failed for path '{dirPath}'");
-
-                    if (MsgBox.Warn(
-                        messagePart + "\n" +
-                        "This can lead to unexpected issues.\n\n" +
-                        "Do you want to continue?",
-                        MessageBoxButton.YesNo,
-                        MessageBoxResult.No) == MessageBoxResult.No)
-                    {
-                        return false;
-                    }
-                    else
-                    {
-                        L.CallerWarning("User ignored sanity check.");
-                    }
-                }
-                else
-                {
-                    L.CallerDebug($"Directory '{dirPath}' is writable.");
-                }
-
-                return true;
-            }
-
-            return
-                CheckIfDirIsWritable(Env.ProcessDirPath, "The directory '{0}', where the launcher's files reside, does not appear to be writable.") &&
-                CheckIfDirIsWritable(Env.GetCwd(), "The working directory '{0}' does not appear to be writable.");
         }
     }
 }
