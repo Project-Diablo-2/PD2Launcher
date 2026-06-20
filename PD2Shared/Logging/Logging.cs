@@ -84,25 +84,25 @@ namespace PD2Shared.Logging
             {
                 if (!DllImports.AllocConsole())
                 {
-                    throw new InvalidOperationException($"{nameof(DllImports.AllocConsole)}() failed.");
+                    throw new InvalidOperationException($"{nameof(DllImports.AllocConsole)}() failed.", Win32.GetLastException());
                 }
 
                 // Force using UTF-8 as the output code page
                 if (!DllImports.SetConsoleOutputCP((uint)Encoding.UTF8.CodePage))
                 {
-                    throw new InvalidOperationException($"{nameof(DllImports.SetConsoleOutputCP)}() failed.");
+                    throw new InvalidOperationException($"{nameof(DllImports.SetConsoleOutputCP)}() failed.", Win32.GetLastException());
                 }
 
                 if (!DllImports.SetConsoleTitle("Log"))
                 {
-                    throw new InvalidOperationException($"{nameof(DllImports.SetConsoleTitle)}() failed.");
+                    throw new InvalidOperationException($"{nameof(DllImports.SetConsoleTitle)}() failed.", Win32.GetLastException());
                 }
 
                 IntPtr consoleHwnd = DllImports.GetConsoleWindow();
 
                 if (consoleHwnd == IntPtr.Zero)
                 {
-                    throw new InvalidOperationException($"{nameof(DllImports.GetConsoleWindow)}() failed.");
+                    throw new InvalidOperationException($"{nameof(DllImports.GetConsoleWindow)}() failed.", Win32.GetLastException());
                 }
 
                 // Don't bother with a full set of constants, this is for debugging purposes only
