@@ -583,6 +583,8 @@ namespace PD2Launcherv2
                     }
 
                     _launchGameHelpers.LaunchGame(_localStorage);
+
+                    await Task.Delay(TimeSpan.FromSeconds(1.5));
                 }
                 catch (Exception ex)
                 {
