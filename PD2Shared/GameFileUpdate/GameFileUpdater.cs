@@ -546,21 +546,18 @@ namespace PD2Shared.GameFileUpdate
 
             using var loggedRoutine = new LoggedRoutine();
 
-            var updateThrottle = new UpdateThrottle();
-
-            var totalsLock = new object();
-
             int totalFilesValidated = 0;
             int totalFilesToValidate = filesToValidate.Length;
             long totalBytesValidated = 0;
-            long? totalBytesToValidate = null;
+            // Don't use Nullable to allow atomic operations. Use the symbolic IsInvalidSize() instead.
+            long totalBytesToValidate = default(long).GetInvalidSize();
 
             if (validationKind.IsDownloadFiles())
             {
                 // Factor in PartialDownloads
                 if (filesToValidate.All(d => d.PartialDownload?.PartialSize != null || d.ManifestEntry.Size != null))
                 {
-                    totalBytesToValidate = filesToValidate.Sum(d => d.PartialDownload?.PartialSize ?? d.ManifestEntry.Size);
+                    totalBytesToValidate = filesToValidate.Sum(d => d.PartialDownload?.PartialSize ?? d.ManifestEntry.Size!.Value);
                 }
             }
             else
@@ -574,7 +571,7 @@ namespace PD2Shared.GameFileUpdate
             }
 
             {
-                var totalBytesToValidateStr = totalBytesToValidate == null ? "?" : Formatting.FormatSizeInMiB(totalBytesToValidate.Value);
+                var totalBytesToValidateStr = totalBytesToValidate.IsInvalidSize() ? "?" : Formatting.FormatSizeInMiB(totalBytesToValidate);
 
                 L.CallerInformation($"Validating {totalFilesToValidate} {validationKind} ({totalBytesToValidateStr} total)...");
             }
@@ -586,130 +583,121 @@ namespace PD2Shared.GameFileUpdate
                 .Extract()
             );
 
-            await Parallel.ForEachAsync(filesToValidate, parallelOptions, async (f, ct) =>
+            SimpleTimer? updateTimer = null;
+
+            if (progress != null)
             {
-                bool validatingPartialDownload = validationKind.IsDownloadFiles() && f.PartialDownload != null;
-
-                string path = validationKind.IsDownloadFiles() ? f.DownloadPath : f.InstallPath;
-                long? expectedSize = validatingPartialDownload ? f.PartialDownload!.PartialSize : f.ManifestEntry.Size;
-                Hash expectedHash = validatingPartialDownload ? f.PartialDownload!.PartialXxh3Hash : f.ManifestEntry.BestHash;
-
-                var doingLooseValidation = validationKind.IsInstallFiles() && f.ManifestEntry.LooseValidation;
-
-                (bool validationSucceeded, long? actualSize, Xxh3Hash? xxh3Hash) = await ValidateFileAsync(
-                    path,
-                    expectedSize,
-                    expectedHash,
-                    ct,
-                    doingLooseValidation,
-                    sizeIsMinimumSize: validatingPartialDownload,
-                    new DirectProgress<Tuple<long, long, long>>(t =>
+                updateTimer = new(() =>
                 {
-                    (var fileBytesValidated, _, _) = t;
-
-                    lock (totalsLock)
-                    {
-                        totalBytesValidated += fileBytesValidated;
-
-                        updateThrottle.UpdateIfPossible(() =>
-                        {
-                            var pv = new PV();
-
-                            if (totalBytesToValidate != null)
-                            {
-                                pv.SetTotal(totalBytesValidated, totalBytesToValidate.Value);
-                            }
-                            else
-                            {
-                                pv.SetTotal(totalFilesValidated, totalFilesToValidate);
-                            }
-                            pv.SetBytes(totalBytesValidated, totalBytesToValidate);
-                            progress?.Report(pv.Extract());
-                        });
-                    }
-                })).ConfigureAwait(false);
-
-                if (!validationSucceeded)
-                {
-                    // Discard PartialDownload due to failed validation
-                    if (validatingPartialDownload)
-                    {
-                        L.CallerWarning($"{path}: partial download failed validation. Discarding...");
-
-                        f.PartialDownload = null;
-                    }
-                }
-                else
-                {
-                    // Loosely validated file's actual size is irrelevant
-                    if (!doingLooseValidation && !validatingPartialDownload)
-                    {
-                        Debug.Assert(actualSize != null);
-                        Debug.Assert(xxh3Hash is not null);
-
-                        if (f.ManifestEntry.Size != actualSize)
-                        {
-                            lock (totalsLock)
-                            {
-                                if (totalBytesToValidate != null)
-                                {
-                                    totalBytesToValidate += (actualSize.Value - f.ManifestEntry.Size.GetValueOrDefault(0));
-                                }
-                            }
-
-                            if (f.ManifestEntry.Size != null)
-                            {
-                                var fromSizeStr = Formatting.FormatSizeInMiB(f.ManifestEntry.Size.Value, appendUnits: false);
-                                var toSizeStr = Formatting.FormatSizeInMiB(actualSize.Value);
-
-                                L.CallerWarning($"{path}: updating {nameof(f.ManifestEntry.Size)} in manifest: {f.ManifestEntry.Size} -> {actualSize} bytes ({fromSizeStr} -> {toSizeStr})");
-                            }
-
-                            f.ManifestEntry.Size = actualSize.Value;
-                        }
-
-                        if (f.ManifestEntry.Xxh3Hash != xxh3Hash)
-                        {
-                            if (f.ManifestEntry.Xxh3Hash != null)
-                            {
-                                L.CallerWarning($"{path}: updating {nameof(f.ManifestEntry.Xxh3Hash)} in manifest");
-                            }
-
-                            f.ManifestEntry.Xxh3Hash = xxh3Hash;
-                        }
-                    }
-                }
-
-                switch (validationKind)
-                {
-                    case ValidationKind.InstallFiles:
-                        f.InstallFileValidated = validationSucceeded;
-                        break;
-
-                    case ValidationKind.DownloadFiles:
-                        f.DownloadFileValidated = validationSucceeded;
-                        break;
-                }
-
-                lock (totalsLock)
-                {
-                    ++totalFilesValidated;
+                    var localTotalBytesValidated = Interlocked.Read(ref totalBytesValidated);
+                    var localTotalBytesToValidate = Interlocked.Read(ref totalBytesToValidate);
+                    var localTotalFilesValidated = totalFilesValidated;
 
                     var pv = new PV();
 
-                    pv.SetFileCount(totalFilesValidated, totalFilesToValidate);
-                    if (totalBytesToValidate != null)
+                    pv.SetFileCount(localTotalFilesValidated, totalFilesToValidate);
+                    if (localTotalBytesToValidate.IsInvalidSize())
                     {
-                        pv.SetTotal(totalBytesValidated, totalBytesToValidate.Value);
+                        pv.SetTotal(localTotalFilesValidated, totalFilesToValidate);
                     }
                     else
                     {
-                        pv.SetTotal(totalFilesValidated, totalFilesToValidate);
+                        pv.SetTotal(localTotalBytesValidated, localTotalBytesToValidate);
                     }
-                    pv.SetBytes(totalBytesValidated, totalBytesToValidate);
-                    progress?.Report(pv.Extract());
-                }
-            }).ConfigureAwait(false);
+                    pv.SetBytes(localTotalBytesValidated, localTotalBytesToValidate);
+
+                    progress.Report(pv.Extract());
+                });
+            }
+
+            using (updateTimer)
+            {
+                await Parallel.ForEachAsync(filesToValidate, parallelOptions, async (f, ct) =>
+                {
+                    bool validatingPartialDownload = validationKind.IsDownloadFiles() && f.PartialDownload != null;
+
+                    string path = validationKind.IsDownloadFiles() ? f.DownloadPath : f.InstallPath;
+                    long? expectedSize = validatingPartialDownload ? f.PartialDownload!.PartialSize : f.ManifestEntry.Size;
+                    Hash expectedHash = validatingPartialDownload ? f.PartialDownload!.PartialXxh3Hash : f.ManifestEntry.BestHash;
+
+                    var doingLooseValidation = validationKind.IsInstallFiles() && f.ManifestEntry.LooseValidation;
+
+                    (bool validationSucceeded, long? actualSize, Xxh3Hash? xxh3Hash) = await ValidateFileAsync(
+                        path,
+                        expectedSize,
+                        expectedHash,
+                        ct,
+                        doingLooseValidation,
+                        sizeIsMinimumSize: validatingPartialDownload,
+                        new DirectProgress<Tuple<long, long, long>>(t =>
+                    {
+                        (var fileBytesValidated, _, _) = t;
+
+                        Interlocked.Add(ref totalBytesValidated, fileBytesValidated);
+                    })).ConfigureAwait(false);
+
+                    if (!validationSucceeded)
+                    {
+                        // Discard PartialDownload due to failed validation
+                        if (validatingPartialDownload)
+                        {
+                            L.CallerWarning($"{path}: partial download failed validation. Discarding...");
+
+                            f.PartialDownload = null;
+                        }
+                    }
+                    else
+                    {
+                        // Loosely validated file's actual size is irrelevant
+                        if (!doingLooseValidation && !validatingPartialDownload)
+                        {
+                            Debug.Assert(actualSize != null);
+                            Debug.Assert(xxh3Hash is not null);
+
+                            if (f.ManifestEntry.Size != actualSize)
+                            {
+                                if (!totalBytesToValidate.IsInvalidSize())
+                                {
+                                    Interlocked.Add(ref totalBytesToValidate, actualSize.Value - f.ManifestEntry.Size.GetValueOrDefault(0));
+                                }
+
+                                if (f.ManifestEntry.Size != null)
+                                {
+                                    var fromSizeStr = Formatting.FormatSizeInMiB(f.ManifestEntry.Size.Value, appendUnits: false);
+                                    var toSizeStr = Formatting.FormatSizeInMiB(actualSize.Value);
+
+                                    L.CallerWarning($"{path}: updating {nameof(f.ManifestEntry.Size)} in manifest: {f.ManifestEntry.Size} -> {actualSize} bytes ({fromSizeStr} -> {toSizeStr})");
+                                }
+
+                                f.ManifestEntry.Size = actualSize.Value;
+                            }
+
+                            if (f.ManifestEntry.Xxh3Hash != xxh3Hash)
+                            {
+                                if (f.ManifestEntry.Xxh3Hash != null)
+                                {
+                                    L.CallerWarning($"{path}: updating {nameof(f.ManifestEntry.Xxh3Hash)} in manifest");
+                                }
+
+                                f.ManifestEntry.Xxh3Hash = xxh3Hash;
+                            }
+                        }
+                    }
+
+                    switch (validationKind)
+                    {
+                        case ValidationKind.InstallFiles:
+                            f.InstallFileValidated = validationSucceeded;
+                            break;
+
+                        case ValidationKind.DownloadFiles:
+                            f.DownloadFileValidated = validationSucceeded;
+                            break;
+                    }
+
+                    Interlocked.Increment(ref totalFilesValidated);
+                }).ConfigureAwait(false);
+            }
         }
 
         private static async Task<long?> QueryDownloadAsync(HttpClient httpClient, string url, CancellationToken ct)
