@@ -1,4 +1,6 @@
-﻿namespace PD2Shared.GameFileUpdate
+﻿using PD2Shared.GameFileUpdate.Internal;
+
+namespace PD2Shared.GameFileUpdate
 {
     public partial class ProgressValues
     {
@@ -92,6 +94,15 @@
             CheckIfExtracted();
 
             _data.Bytes = new BytesProgress { Current = current, Total = total };
+            _data.BytesSet = true;
+            return this;
+        }
+
+        public ProgressValues SetBytes(long current, long total)
+        {
+            CheckIfExtracted();
+
+            _data.Bytes = new BytesProgress { Current = current, Total = total.IsInvalidSize() ? null : total };
             _data.BytesSet = true;
             return this;
         }

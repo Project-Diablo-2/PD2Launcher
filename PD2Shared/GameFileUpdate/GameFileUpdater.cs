@@ -985,25 +985,21 @@ namespace PD2Shared.GameFileUpdate
 
             using var loggedRoutine = new LoggedRoutine();
 
-            var updateThrottle = new UpdateThrottle();
-
-            var totalsLock = new object();
-
             int totalFilesDownloaded = 0;
             int totalFilesToDownload = filesToDownload.Length;
             long totalBytesDownloaded = filesToDownload
                 .Where(f => f.PartialDownload != null)
                 .Sum(f => f.PartialDownload!.PartialSize);
 
-            long? totalBytesToDownload = filesToDownload.Any(f => f.ManifestEntry.Size == null) ? (long?)null :
-                filesToDownload
+            // Don't use Nullable to allow atomic operations. Use the symbolic IsInvalidSize() instead.
+            long totalBytesToDownload = filesToDownload.Any(f => f.ManifestEntry.Size == null) ? default(long).GetInvalidSize() : filesToDownload
                 .Sum(f => f.ManifestEntry.Size!.Value);
 
             // Monotonic value for throughput estimation
             long totalBytesDownloadedEver = 0;
 
             {
-                var totalRemainingBytesToDownloadStr = totalBytesToDownload == null ? "?" : Formatting.FormatSizeInMiB(totalBytesToDownload.Value - totalBytesDownloaded);
+                var totalRemainingBytesToDownloadStr = totalBytesToDownload.IsInvalidSize() ? "?" : Formatting.FormatSizeInMiB(totalBytesToDownload - totalBytesDownloaded);
                 var totalPartialDownloads = filesToDownload.Count(f => f.PartialDownload != null);
 
                 L.CallerInformation($"Downloading {totalFilesToDownload} file(s) ({totalRemainingBytesToDownloadStr} total; {totalPartialDownloads} partial download(s) being resumed)...");
@@ -1013,13 +1009,13 @@ namespace PD2Shared.GameFileUpdate
                 var pv = new PV().Clear();
 
                 pv.SetFileCount(totalFilesDownloaded, totalFilesToDownload);
-                if (totalBytesToDownload != null)
+                if (totalBytesToDownload.IsInvalidSize())
                 {
-                    pv.SetTotal(totalBytesDownloaded, totalBytesToDownload.Value);
+                    pv.SetTotal(totalFilesDownloaded, totalFilesToDownload);
                 }
                 else
                 {
-                    pv.SetTotal(totalFilesDownloaded, totalFilesToDownload);
+                    pv.SetTotal(totalBytesDownloaded, totalBytesToDownload);
                 }
                 pv.SetBytes(totalBytesDownloaded, totalBytesToDownload);
 
@@ -1047,7 +1043,7 @@ namespace PD2Shared.GameFileUpdate
 
                 using var throughputTimer = new SimpleTimer(TimeSpan.FromMilliseconds(250), () =>
                 {
-                    long localTotalBytesDownloadedEver = totalBytesDownloadedEver;
+                    long localTotalBytesDownloadedEver = Interlocked.Read(ref totalBytesDownloadedEver);
 
                     if (throughputFirstTick)
                     {
@@ -1117,119 +1113,109 @@ namespace PD2Shared.GameFileUpdate
 
                 // The actual download...
 
-                await Parallel.ForEachAsync(filesToDownload.OrderByDescending(f => f.ManifestEntry.Size).ToArray(), parallelOptions, async (f, ct) =>
+                SimpleTimer? updateTimer = null;
+
+                if (progress != null)
                 {
-                    bool sizeConfirmed = false;
+                    updateTimer = new(() =>
+                    {
+                        var localTotalBytesDownloaded = Interlocked.Read(ref totalBytesDownloaded);
+                        var localTotalBytesToDownload = Interlocked.Read(ref totalBytesToDownload);
+                        var localTotalFilesDownloaded = totalFilesDownloaded;
 
-                    long previousTotalFileBytesDownloaded = f.PartialDownload?.PartialSize ?? 0;
+                        var pv = new PV();
 
-                    f.DownloadResult = await DownloadFileAsync(
-                        httpClient,
-                        f.Url,
-                        f.DownloadPath,
-                        f.ManifestEntry.Md5Hash,
-                        f.ManifestEntry.BestHash,
-                        ct,
-                        f.PartialDownload,
-                        new DirectProgress<Tuple<long, long, long?>>(t =>
+                        pv.SetFileCount(localTotalFilesDownloaded, totalFilesToDownload);
+                        if (localTotalBytesToDownload.IsInvalidSize())
                         {
-                            (var fileBytesDownloaded, var totalFileBytesDownloaded, var totalFileSize) = t;
+                            pv.SetTotal(localTotalFilesDownloaded, totalFilesToDownload);
+                        }
+                        else
+                        {
+                            pv.SetTotal(localTotalBytesDownloaded, localTotalBytesToDownload);
+                        }
+                        pv.SetBytes(localTotalBytesDownloaded, localTotalBytesToDownload);
 
-                            if (!sizeConfirmed)
+                        progress.Report(pv.Extract());
+                    });
+                }
+
+                using (updateTimer)
+                {
+                    await Parallel.ForEachAsync(filesToDownload.OrderByDescending(f => f.ManifestEntry.Size), parallelOptions, async (f, ct) =>
+                    {
+                        bool sizeConfirmed = false;
+
+                        long previousTotalFileBytesDownloaded = f.PartialDownload?.PartialSize ?? 0;
+
+                        f.DownloadResult = await DownloadFileAsync(
+                            httpClient,
+                            f.Url,
+                            f.DownloadPath,
+                            f.ManifestEntry.Md5Hash,
+                            f.ManifestEntry.BestHash,
+                            ct,
+                            f.PartialDownload,
+                            new DirectProgress<Tuple<long, long, long?>>(t =>
                             {
-                                sizeConfirmed = true;
+                                (var fileBytesDownloaded, var totalFileBytesDownloaded, var totalFileSize) = t;
 
-                                if (totalFileSize != null)
+                                if (!sizeConfirmed)
                                 {
-                                    lock (totalsLock)
-                                    {
-                                        if (totalBytesToDownload != null)
-                                        {
-                                            totalBytesToDownload += (totalFileSize.Value - f.ManifestEntry.Size.GetValueOrDefault(0));
-                                        }
-                                    }
+                                    sizeConfirmed = true;
 
-                                    if (f.ManifestEntry.Size != totalFileSize)
+                                    if (totalFileSize != null)
                                     {
-                                        if (f.ManifestEntry.Size != null)
+                                        if (!totalBytesToDownload.IsInvalidSize())
                                         {
-                                            var fromSizeStr = Formatting.FormatSizeInMiB(f.ManifestEntry.Size.Value, appendUnits: false);
-                                            var toSizeStr = Formatting.FormatSizeInMiB(totalFileSize.Value);
-
-                                            L.CallerWarning($"{f.ManifestEntry.Path}: updating {nameof(f.ManifestEntry.Size)} in manifest: {f.ManifestEntry.Size} -> {totalFileSize} bytes ({fromSizeStr} -> {toSizeStr})");
+                                            Interlocked.Add(ref totalBytesToDownload, totalFileSize.Value - f.ManifestEntry.Size.GetValueOrDefault(0));
                                         }
 
-                                        f.ManifestEntry.Size = totalFileSize;
+                                        if (f.ManifestEntry.Size != totalFileSize)
+                                        {
+                                            if (f.ManifestEntry.Size != null)
+                                            {
+                                                var fromSizeStr = Formatting.FormatSizeInMiB(f.ManifestEntry.Size.Value, appendUnits: false);
+                                                var toSizeStr = Formatting.FormatSizeInMiB(totalFileSize.Value);
+
+                                                L.CallerWarning($"{f.ManifestEntry.Path}: updating {nameof(f.ManifestEntry.Size)} in manifest: {f.ManifestEntry.Size} -> {totalFileSize} bytes ({fromSizeStr} -> {toSizeStr})");
+                                            }
+
+                                            f.ManifestEntry.Size = totalFileSize;
+                                        }
                                     }
                                 }
-                            }
 
-                            lock (totalsLock)
-                            {
-                                totalBytesDownloaded += (totalFileBytesDownloaded - previousTotalFileBytesDownloaded);
+                                Interlocked.Add(ref totalBytesDownloaded, totalFileBytesDownloaded - previousTotalFileBytesDownloaded);
                                 previousTotalFileBytesDownloaded = totalFileBytesDownloaded;
-                                totalBytesDownloadedEver += fileBytesDownloaded;
+                                Interlocked.Add(ref totalBytesDownloadedEver, fileBytesDownloaded);
+                            })).ConfigureAwait(false);
 
-                                updateThrottle.UpdateIfPossible(() =>
+                        lock (downloadResults)
+                        {
+                            downloadResults.Add(f.DownloadResult);
+                        }
+
+                        if (!f.DownloadResult.IsSuccess)
+                        {
+                            downloadErrorIndicatorProgress?.Report(true);
+                        }
+                        else
+                        {
+                            if (f.ManifestEntry.Xxh3Hash != f.DownloadResult.Xxh3Hash)
+                            {
+                                if (f.ManifestEntry.Xxh3Hash != null)
                                 {
-                                    var pv = new PV();
+                                    L.CallerWarning($"{f.ManifestEntry.Path}: updating {nameof(f.ManifestEntry.Xxh3Hash)} in manifest");
+                                }
 
-                                    if (totalBytesToDownload != null)
-                                    {
-                                        pv.SetTotal(totalBytesDownloaded, totalBytesToDownload.Value);
-                                    }
-                                    else
-                                    {
-                                        pv.SetTotal(totalFilesDownloaded, totalFilesToDownload);
-                                    }
-                                    pv.SetBytes(totalBytesDownloaded, totalBytesToDownload);
-                                    progress?.Report(pv.Extract());
-                                });
+                                f.ManifestEntry.Xxh3Hash = f.DownloadResult.Xxh3Hash;
                             }
-                        })).ConfigureAwait(false);
 
-                    if (!f.DownloadResult.IsSuccess)
-                    {
-                        downloadErrorIndicatorProgress?.Report(true);
-
-                        lock (totalsLock)
-                        {
-                            downloadResults.Add(f.DownloadResult);
+                            Interlocked.Increment(ref totalFilesDownloaded);
                         }
-                    }
-                    else
-                    {
-                        if (f.ManifestEntry.Xxh3Hash != f.DownloadResult.Xxh3Hash)
-                        {
-                            if (f.ManifestEntry.Xxh3Hash != null)
-                            {
-                                L.CallerWarning($"{f.ManifestEntry.Path}: updating {nameof(f.ManifestEntry.Xxh3Hash)} in manifest");
-                            }
-
-                            f.ManifestEntry.Xxh3Hash = f.DownloadResult.Xxh3Hash;
-                        }
-
-                        lock (totalsLock)
-                        {
-                            ++totalFilesDownloaded;
-                            downloadResults.Add(f.DownloadResult);
-
-                            var pv = new PV();
-
-                            pv.SetFileCount(totalFilesDownloaded, totalFilesToDownload);
-                            if (totalBytesToDownload != null)
-                            {
-                                pv.SetTotal(totalBytesDownloaded, totalBytesToDownload.Value);
-                            }
-                            else
-                            {
-                                pv.SetTotal(totalFilesDownloaded, totalFilesToDownload);
-                            }
-                            pv.SetBytes(totalBytesDownloaded, totalBytesToDownload);
-                            progress?.Report(pv.Extract());
-                        }
-                    }
-                }).ConfigureAwait(false);
+                    }).ConfigureAwait(false);
+                }
             }
             catch (OperationCanceledException)
             {
