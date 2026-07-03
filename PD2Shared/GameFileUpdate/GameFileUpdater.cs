@@ -768,8 +768,6 @@ namespace PD2Shared.GameFileUpdate
         {
             using var loggedScope = new LoggedScope($"Querying {filesToQuery.Length} files...");
 
-            var totalsLock = new object();
-
             long totalBytesQueried = initialSize;
             int totalFilesToQuery = filesToQuery.Length;
             int totalFilesQueried = 0;
@@ -781,17 +779,37 @@ namespace PD2Shared.GameFileUpdate
                 .Extract()
             );
 
-            await Parallel.ForEachAsync(filesToQuery, parallelOptions, async (f, ct) =>
-            {
-                var queriedSize = await QueryDownloadAsync(httpClient, f.Url, ct).ConfigureAwait(false);
+            SimpleTimer? updateTimer = null;
 
-                lock (totalsLock)
+            if (progress != null)
+            {
+                updateTimer = new(() =>
                 {
-                    ++totalFilesQueried;
+                    var localTotalBytesQueried = Interlocked.Read(ref totalBytesQueried);
+                    var localTotalFilesQueried = totalFilesQueried;
+
+                    var pv = new PV();
+
+                    progress?.Report(new PV()
+                        .SetTotal(localTotalFilesQueried, totalFilesToQuery)
+                        .SetFileCount(localTotalFilesQueried, totalFilesToQuery)
+                        .SetBytes(localTotalBytesQueried)
+                        .Extract()
+                    );
+                });
+            }
+
+            using (updateTimer)
+            {
+                await Parallel.ForEachAsync(filesToQuery, parallelOptions, async (f, ct) =>
+                {
+                    var queriedSize = await QueryDownloadAsync(httpClient, f.Url, ct).ConfigureAwait(false);
+
+                    Interlocked.Increment(ref totalFilesQueried);
 
                     if (queriedSize != null)
                     {
-                        totalBytesQueried += queriedSize.Value;
+                        Interlocked.Add(ref totalBytesQueried, queriedSize.Value);
 
                         if (f.ManifestEntry.Size != queriedSize)
                         {
@@ -806,15 +824,8 @@ namespace PD2Shared.GameFileUpdate
                             f.ManifestEntry.Size = queriedSize.Value;
                         }
                     }
-
-                    progress?.Report(new PV()
-                        .SetTotal(totalFilesQueried, totalFilesToQuery)
-                        .SetFileCount(totalFilesQueried, totalFilesToQuery)
-                        .SetBytes(totalBytesQueried)
-                        .Extract()
-                    );
-                }
-            }).ConfigureAwait(false);
+                }).ConfigureAwait(false);
+            }
         }
 
         private static async Task<DownloadResult> DownloadFileAsync(
