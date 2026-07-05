@@ -1,4 +1,6 @@
-﻿namespace PD2Shared.Utils
+﻿using System.Text;
+
+namespace PD2Shared.Utils
 {
     public static class Env
     {
@@ -11,11 +13,18 @@
             ProcessFileName = Path.GetFileName(ProcessPath);
             // ProcessPath will never be null, empty nor a root directory
             ProcessDirPath = Path.GetDirectoryName(ProcessPath)!;
+
+            // Retrieves system-default ANSI encoding for non-Unicode programs. Will correctly return UTF-8 when forced system-wide.
+            // (Taken from https://stackoverflow.com/a/70258850)
+            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+            AnsiEncoding = Encoding.GetEncoding(0);
         }
 
         public static string ProcessFileName { get; }
         public static string ProcessPath { get; }
         public static string ProcessDirPath { get; }
+
+        public static Encoding AnsiEncoding { get; }
 
         public static string GetCwd()
         {

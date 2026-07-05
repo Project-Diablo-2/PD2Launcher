@@ -1,4 +1,5 @@
-﻿using System.Windows;
+﻿using System.Text;
+using System.Windows;
 using PD2Launcherv2.Utils;
 using PD2Shared.Logging;
 using static PD2Shared.Logging.LoggingStatic;
@@ -21,6 +22,40 @@ namespace PD2Launcherv2
             }
 
             L.CallerWarning("User ignored sanity check failure.");
+            return true;
+        }
+
+        private static bool CheckGameDirPathEncoding()
+        {
+            string gameDirPath = Env.GetCwd();
+
+            var encodingAltNames = new string[] { Env.AnsiEncoding.WebName, Env.AnsiEncoding.BodyName, Env.AnsiEncoding.HeaderName }
+                .Where(n => !string.IsNullOrEmpty(n))
+                .Distinct()
+                .Select(n => $"'{n}'");
+            string encodingDisplayName = $"'{Env.AnsiEncoding.EncodingName}' (aka {string.Join(", ", encodingAltNames)})";
+
+            string roundTrip = Env.AnsiEncoding.GetString(Encoding.Convert(Encoding.Unicode, Env.AnsiEncoding, Encoding.Unicode.GetBytes(gameDirPath)));
+
+            if (roundTrip != gameDirPath)
+            {
+                L.CallerWarning($"Game directory '{gameDirPath}' cannot be represented in system-default ANSI encoding: {encodingDisplayName}.");
+
+                if (!FailurePrompt(
+                    $"Game directory '{gameDirPath}' cannot be represented in system-default ANSI encoding: {encodingDisplayName}.\n" +
+                    "\n" +
+                    $"Problematic characters: '{new string(gameDirPath.Except(roundTrip).Distinct().ToArray())}'.\n" +
+                    "\n" +
+                    "This will likely cause PD2 to crash."))
+                {
+                    return false;
+                }
+            }
+            else
+            {
+                L.CallerInformation($"Game directory '{gameDirPath}' can be represented in system-default ANSI encoding: {encodingDisplayName}.");
+            }
+
             return true;
         }
 
@@ -79,6 +114,7 @@ namespace PD2Launcherv2
         {
             List<Func<bool>> sanityChecks = new()
             {
+                () => CheckGameDirPathEncoding(),
                 () => CheckIfDirectoriesWritable(),
             };
 
