@@ -29,5 +29,12 @@ namespace PD2Shared.Utils
 
             return FormatSizeInMiB(mebibytesPerSec, appendUnits ? " MiB/s" : "", precision);
         }
+
+        public static string FormatThroughputInMiB(long bytesPerSec, bool appendUnits = true, int precision = DefaultPrecision)
+        {
+            var mebibytesPerSec = bytesPerSec / (double)Mebibyte;
+
+            return FormatSizeInMiB(mebibytesPerSec, appendUnits ? " MiB/s" : "", precision);
+        }
     }
 }

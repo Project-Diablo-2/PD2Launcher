@@ -13,9 +13,10 @@ namespace PD2Shared.Utils
 
         private readonly TimeSpan _interval;
         private readonly Action _handler;
+        private readonly Action? _onDispose;
         private readonly Thread _thread;
 
-        public SimpleTimer(TimeSpan interval, Action handler, ThreadPriority priority = ThreadPriority.AboveNormal)
+        public SimpleTimer(TimeSpan interval, Action handler, Action? onDispose = null, ThreadPriority priority = ThreadPriority.AboveNormal)
         {
             if (interval < TimeSpan.Zero)
             {
@@ -29,6 +30,7 @@ namespace PD2Shared.Utils
             _interval = interval;
 
             _handler = handler;
+            _onDispose = onDispose;
 
             _thread = new Thread(ThreadEntry)
             {
@@ -37,8 +39,8 @@ namespace PD2Shared.Utils
             _thread.Start();
         }
 
-        public SimpleTimer(Action handler, ThreadPriority priority = ThreadPriority.AboveNormal)
-            : this(interval: TimeSpan.FromMilliseconds(UpdateThrottle.DefaultIntervalMilliseconds), handler, priority)
+        public SimpleTimer(Action handler, Action? onDispose = null, ThreadPriority priority = ThreadPriority.AboveNormal)
+            : this(interval: TimeSpan.FromMilliseconds(UpdateThrottle.DefaultIntervalMilliseconds), handler, onDispose, priority)
         {
         }
 
@@ -78,6 +80,8 @@ namespace PD2Shared.Utils
                 _thread.Join();
 
                 _interrupt.Dispose();
+
+                _onDispose?.Invoke();
             }
 
             _disposed = true;

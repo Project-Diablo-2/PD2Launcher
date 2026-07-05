@@ -1028,85 +1028,118 @@ namespace PD2Shared.GameFileUpdate
                 // Do throughput estimation asynchronously to be able to detect and present any connection stalls
 
                 var throughputStopwatch = Stopwatch.StartNew();
-                bool throughputFirstTick = true;
-                long previousElapsedMilliseconds = 0;
 
-                const int MaxLastTotalBytesDownloadedEver = 3;
-                // A poor-man's circular buffer to store the last few values of totalBytesDownloadedEver
-                LinkedList<long> previousTotalBytesDownloadedEver = new();
+                const int ThroughputEstimatorIntervalMilliseconds = 100;
+                const int OverSecondWorthSampleCount = 1000 / ThroughputEstimatorIntervalMilliseconds + 2;
+                // A poor-man's circular buffer that stores slightly more than a second worth of samples
+                LinkedList<ThroughputEstimatorSample> throughputSamples = new();
+                // First ever-recorded sample
+                ThroughputEstimatorSample firstEverSample = null!;
+                // First sample with the final download size
+                ThroughputEstimatorSample firstFinalSample = null!;
                 bool connectionStalled = false;
 
+                var throughputProgressThrottle = new UpdateThrottle(intervalMilliseconds: 200);
                 // Hopefully this won't end up being too spammy on slower connections
                 var throughputLoggingThrottle = new UpdateThrottle(intervalMilliseconds: 1000);
-                var throughputLoggingPaused = false;
+                bool throughputLoggingPaused = false;
+                long maxBytesPerSec = 0;
 
-                using var throughputTimer = new SimpleTimer(TimeSpan.FromMilliseconds(250), () =>
+                using var throughputEstimationTimer = new SimpleTimer(TimeSpan.FromMilliseconds(ThroughputEstimatorIntervalMilliseconds), () =>
                 {
                     long localTotalBytesDownloadedEver = Interlocked.Read(ref totalBytesDownloadedEver);
+                    var timePointMilliseconds = throughputStopwatch.ElapsedMilliseconds;
 
-                    if (throughputFirstTick)
+                    var currentSample = new ThroughputEstimatorSample(localTotalBytesDownloadedEver, timePointMilliseconds);
+                    throughputSamples.AddFirst(currentSample);
+
+                    if (throughputSamples.Count == 1)
                     {
-                        // Set up initial values
+                        firstEverSample = currentSample;
+                    }
 
-                        throughputFirstTick = false;
+                    if (firstFinalSample == null || currentSample.Bytes > firstFinalSample.Bytes)
+                    {
+                        firstFinalSample = currentSample;
+                    }
 
-                        previousTotalBytesDownloadedEver.AddFirst(localTotalBytesDownloadedEver);
-                        previousElapsedMilliseconds = throughputStopwatch.ElapsedMilliseconds;
+                    if (throughputSamples.Count > OverSecondWorthSampleCount)
+                    {
+                        throughputSamples.RemoveLast();
+                    }
+
+                    bool stalled =
+                        throughputSamples.Count >= OverSecondWorthSampleCount &&
+                        throughputSamples
+                            .Take(OverSecondWorthSampleCount)
+                            .Select(s => s.Bytes)
+                            .Distinct()
+                            .Count() == 1;
+
+                    // Stop logging if connection has stalled -- no need to keep putting out zeros into the log
+                    if (stalled && throughputLoggingPaused)
+                    {
+                        offlineIndicatorProgress?.Report(true);
+
+                        if (!connectionStalled)
+                        {
+                            connectionStalled = true;
+                            L.CallerWarning("Connection stalled.");
+                        }
+
+                        return;
                     }
                     else
                     {
-                        var bytesDownloaded = localTotalBytesDownloadedEver - previousTotalBytesDownloadedEver.First!.Value;
-                        previousTotalBytesDownloadedEver.AddFirst(localTotalBytesDownloadedEver);
+                        offlineIndicatorProgress?.Report(false);
 
-                        if (previousTotalBytesDownloadedEver.Count > MaxLastTotalBytesDownloadedEver)
+                        throughputLoggingPaused = false;
+
+                        if (connectionStalled)
                         {
-                            previousTotalBytesDownloadedEver.RemoveLast();
+                            connectionStalled = false;
+                            L.CallerWarning("Connection restored.");
                         }
+                    }
 
-                        var currentElapsedMilliseconds = throughputStopwatch.ElapsedMilliseconds;
-                        var elapsedMilliseconds = currentElapsedMilliseconds - previousElapsedMilliseconds;
-                        previousElapsedMilliseconds = currentElapsedMilliseconds;
+                    // Estimating using samples spanning across less than a second will inflate the throughput
+                    if (throughputSamples.Count < OverSecondWorthSampleCount)
+                    {
+                        return;
+                    }
 
-                        bool stalled =
-                            previousTotalBytesDownloadedEver.Count >= MaxLastTotalBytesDownloadedEver &&
-                            previousTotalBytesDownloadedEver.Distinct().Count() == 1;
+                    var lastSample = throughputSamples.Last!.Value;
 
-                        // Stop logging if connection has stalled -- no need to keep putting out zeros into the log
-                        if (stalled && throughputLoggingPaused)
-                        {
-                            offlineIndicatorProgress?.Report(true);
+                    var bytesDownloaded = currentSample.Bytes - lastSample.Bytes;
+                    var elapsedMilliseconds = currentSample.TimePointMilliseconds - lastSample.TimePointMilliseconds;
 
-                            if (!connectionStalled)
-                            {
-                                connectionStalled = true;
-                                L.CallerWarning("Connection stalled.");
-                            }
-
-                            return;
-                        }
-                        else
-                        {
-                            offlineIndicatorProgress?.Report(false);
-
-                            throughputLoggingPaused = false;
-
-                            if (connectionStalled)
-                            {
-                                connectionStalled = false;
-                                L.CallerWarning("Connection restored.");
-                            }
-                        }
-
+                    throughputProgressThrottle.UpdateIfPossible(() =>
+                    {
                         progress?.Report(new PV()
                             .SetBytesPerSec(bytesDownloaded, elapsedMilliseconds)
                             .Extract()
                         );
+                    });
 
-                        throughputLoggingThrottle.UpdateIfPossible(() =>
-                        {
-                            throughputLoggingPaused = stalled;
-                            L.CallerDebug($"Throughput: {Formatting.FormatThroughputInMiB(bytesDownloaded, elapsedMilliseconds)}");
-                        });
+                    var bytesPerSec = bytesDownloaded * 1000 / elapsedMilliseconds;
+                    maxBytesPerSec = Math.Max(maxBytesPerSec, bytesPerSec);
+
+                    throughputLoggingThrottle.UpdateIfPossible(() =>
+                    {
+                        throughputLoggingPaused = stalled;
+
+                        L.CallerDebug($"Throughput: {Formatting.FormatThroughputInMiB(bytesPerSec)}");
+                    });
+                }, onDispose: () =>
+                {
+                    if (maxBytesPerSec > 0)
+                    {
+                        L.CallerDebug($"Max throughput: {Formatting.FormatThroughputInMiB(maxBytesPerSec)}");
+                    }
+
+                    if (firstEverSample != null && firstFinalSample != null)
+                    {
+                        L.CallerDebug($"Avg throughput: {Formatting.FormatThroughputInMiB(firstFinalSample.Bytes - firstEverSample.Bytes, firstFinalSample.TimePointMilliseconds - firstEverSample.TimePointMilliseconds)}");
                     }
                 });
 
