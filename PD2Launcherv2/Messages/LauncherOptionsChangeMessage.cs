@@ -2,8 +2,8 @@
 {
     public class LauncherOptionsChangeMessage
     {
-        public bool ForceSoftwareRenderer { get; set; }
-        public bool UseHttp2 { get; set; }
-        public bool DisableAutoUpdate { get; set; }
+        public bool ForceSoftwareRenderer { get; init; }
+        public bool UseHttp2 { get; init; }
+        public bool DisableAutoUpdate { get; init; }
     }
 }
