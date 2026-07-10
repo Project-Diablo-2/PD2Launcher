@@ -1,6 +1,7 @@
 ﻿using System.Text;
 using System.Windows;
 using PD2Launcherv2.Utils;
+using PD2Launcherv2.Utils.Gl;
 using PD2Shared.Logging;
 using static PD2Shared.Logging.LoggingStatic;
 using PD2Shared.Utils;
@@ -110,12 +111,25 @@ namespace PD2Launcherv2
             return true;
         }
 
+        private static bool TestGlContext()
+        {
+            using LoggedRoutine loggedRoutine = new();
+
+            // Force creating GL contexts
+            _ = GlTest.BestCtx;
+
+            // This is too early to complain about any issues with GL.
+            // Evaluate GlTest.BestCtx in light of current launcher options in MainWindow.
+            return true;
+        }
+
         public static bool Run()
         {
             List<Func<bool>> sanityChecks = new()
             {
                 () => CheckGameDirPathEncoding(),
                 () => CheckIfDirectoriesWritable(),
+                () => TestGlContext()
             };
 
             using LoggedScope loggedScope = new($"Running {sanityChecks.Count} sanity check(s)...");
