@@ -29,9 +29,35 @@ namespace PD2Shared.Logging
             [DllImport("kernel32.dll")]
             public static extern IntPtr GetConsoleWindow();
 
-            [DllImport("user32.dll")]
+            public enum ShowWindowCommand : int
+            {
+#pragma warning disable format
+                SW_HIDE            = 0,
+                SW_SHOWNORMAL      = 1,
+                SW_NORMAL          = 1,
+                SW_SHOWMINIMIZED   = 2,
+                SW_SHOWMAXIMIZED   = 3,
+                SW_MAXIMIZE        = 3,
+                SW_SHOWNOACTIVATE  = 4,
+                SW_SHOW            = 5,
+                SW_MINIMIZE        = 6,
+                SW_SHOWMINNOACTIVE = 7,
+                SW_SHOWNA          = 8,
+                SW_RESTORE         = 9,
+                SW_SHOWDEFAULT     = 10,
+                SW_FORCEMINIMIZE   = 11,
+                SW_MAX             = 11,
+#pragma warning restore format
+            }
+
+            [DllImport("user32.dll", ExactSpelling = true)]
             [return: MarshalAs(UnmanagedType.Bool)]
-            public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);
+            private static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);
+
+            public static bool ShowWindowAsync(IntPtr hWnd, ShowWindowCommand nCmdShow)
+            {
+                return ShowWindowAsync(hWnd, (int)nCmdShow);
+            }
         }
 
         private const string ConsoleOutputTemplate = "{Timestamp:HH:mm:ss.fff} {Level:u1}{Level:u1} {Message:lj}{NewLine}{Exception}";
@@ -84,33 +110,32 @@ namespace PD2Shared.Logging
             {
                 if (!DllImports.AllocConsole())
                 {
-                    throw new InvalidOperationException($"{nameof(DllImports.AllocConsole)}() failed.", Win32.GetLastException());
+                    throw Win32.GetLastException(nameof(DllImports.AllocConsole));
                 }
 
                 // Force using UTF-8 as the output code page
                 if (!DllImports.SetConsoleOutputCP((uint)Encoding.UTF8.CodePage))
                 {
-                    throw new InvalidOperationException($"{nameof(DllImports.SetConsoleOutputCP)}() failed.", Win32.GetLastException());
+                    throw Win32.GetLastException(nameof(DllImports.SetConsoleOutputCP), Encoding.UTF8.CodePage);
                 }
 
-                if (!DllImports.SetConsoleTitle("Log"))
+                const string ConsoleTitle = "Log";
+
+                if (!DllImports.SetConsoleTitle(ConsoleTitle))
                 {
-                    throw new InvalidOperationException($"{nameof(DllImports.SetConsoleTitle)}() failed.", Win32.GetLastException());
+                    throw Win32.GetLastException(nameof(DllImports.SetConsoleTitle), ConsoleTitle);
                 }
 
                 IntPtr consoleHwnd = DllImports.GetConsoleWindow();
 
                 if (consoleHwnd == IntPtr.Zero)
                 {
-                    throw new InvalidOperationException($"{nameof(DllImports.GetConsoleWindow)}() failed.", Win32.GetLastException());
+                    throw Win32.GetLastException(nameof(DllImports.GetConsoleWindow));
                 }
 
-                // Don't bother with a full set of constants, this is for debugging purposes only
-                const int SW_SHOWMAXIMIZED = 3;
-
-                if (!DllImports.ShowWindowAsync(consoleHwnd, SW_SHOWMAXIMIZED))
+                if (!DllImports.ShowWindowAsync(consoleHwnd, DllImports.ShowWindowCommand.SW_SHOWMAXIMIZED))
                 {
-                    throw new InvalidOperationException($"{nameof(DllImports.ShowWindowAsync)}() failed.");
+                    throw Win32.GetLastException(nameof(DllImports.ShowWindowAsync), DllImports.ShowWindowCommand.SW_SHOWMAXIMIZED);
                 }
 
                 _consoleCreated = true;
