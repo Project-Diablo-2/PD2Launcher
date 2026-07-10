@@ -105,6 +105,13 @@ namespace PD2Launcherv2.ViewModels
                     _isDdrawSelected = value;
                     OnPropertyChanged(nameof(IsDdrawSelected));
                     OnPropertyChanged(nameof(DDrawControlsVisible));
+
+                    Messenger.Default.Send(new RendererChangeMessage
+                    {
+                        UseD2GL = !_isDdrawSelected,
+                        // <!> This is quite horrible and should be made into an enum
+                        CncDdrawUsesOGL = _selectedRenderer == "opengl"
+                    });
                 }
             }
         }
@@ -323,6 +330,13 @@ namespace PD2Launcherv2.ViewModels
                 {
                     _selectedRenderer = value;
                     OnPropertyChanged(nameof(SelectedRenderer));
+
+                    Messenger.Default.Send(new RendererChangeMessage
+                    {
+                        UseD2GL = !_isDdrawSelected,
+                        // <!> This is quite horrible and should be made into an enum
+                        CncDdrawUsesOGL = _selectedRenderer == "opengl"
+                    });
                 }
             }
         }

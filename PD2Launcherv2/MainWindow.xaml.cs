@@ -20,6 +20,7 @@ using System.Windows.Navigation;
 using System.Windows.Threading;
 using System.IO;
 using PD2Launcherv2.Utils;
+using PD2Launcherv2.Utils.Gl;
 using PD2Shared.GameFileUpdate;
 using PD2Shared.Logging;
 using static PD2Shared.Logging.LoggingStatic;
@@ -74,6 +75,8 @@ namespace PD2Launcherv2
 
         private readonly Brush NormalTextBrush;
         private readonly Brush ErrorTextBrush;
+
+        private bool _suppressRendererChangedMessages = false;
 
         private bool _isBeta;
         public bool IsBeta
@@ -222,10 +225,18 @@ namespace PD2Launcherv2
             LoadConfiguration();
             LoadOptions();
 
+            CheckGlCtxAndPrompt(
+                // <!> This property is incredibly ambiguous
+                usesD2gl: _localStorage.LoadSection<LauncherArgs>(StorageKey.LauncherArgs).graphics == false,
+                // <!> This is quite horrible and should be made into an enum
+                cncDdrawUsesOgl: _localStorage.LoadSection<DdrawOptions>(StorageKey.DdrawOptions).Renderer == "opengl"
+            );
+
             // Registering to receive NavigationMessage
             Messenger.Default.Register<NavigationMessage>(this, OnNavigationMessageReceived);
             Messenger.Default.Register<ConfigurationChangeMessage>(this, OnConfigurationChanged);
             Messenger.Default.Register<LauncherOptionsChangeMessage>(this, OnLauncherOptionsChanged);
+            Messenger.Default.Register<RendererChangeMessage>(this, OnRendererChanged);
             DataContext = this;
 
             this.Closed += MainWindow_Closed;
@@ -916,7 +927,19 @@ namespace PD2Launcherv2
         {
             ClearNavigationStack();
             Overlay.Visibility = Visibility.Visible;
-            MainFrame.Navigate(new OptionsView());
+
+            try
+            {
+                // <!> This is a nasty workaround for OptionsViewModel's excessive and reentrant event firing during initialization
+                //     caused by not differentiating between properties being set programmatically and interactively.
+                _suppressRendererChangedMessages = true;
+
+                MainFrame.Navigate(new OptionsView());
+            }
+            finally
+            {
+                _suppressRendererChangedMessages = false;
+            }
         }
 
         private void ShowLootView()
@@ -1003,6 +1026,63 @@ namespace PD2Launcherv2
             OnPropertyChanged(nameof(UseHttp2));
             IsDisableUpdates = message.DisableAutoUpdate;
             OnPropertyChanged(nameof(IsDisableUpdates));
+        }
+
+        private void OnRendererChanged(RendererChangeMessage message)
+        {
+            if (_suppressRendererChangedMessages)
+            {
+                return;
+            }
+
+            CheckGlCtxAndPrompt(message.UseD2GL, message.CncDdrawUsesOGL);
+        }
+
+        private static void CheckGlCtxAndPrompt(bool usesD2gl, bool cncDdrawUsesOgl)
+        {
+            if (!usesD2gl && !cncDdrawUsesOgl)
+            {
+                return;
+            }
+
+            if (usesD2gl)
+            {
+                if (GlTest.BestCtx.GlCtxInfo == null && GlTest.BestCtx.StageReached.IndicatesGlFailure())
+                {
+                    MsgBox.Exception(
+                        GlTest.BestCtx.Exception,
+                        "Selected 3dfx (D2GL) renderer wrapper might not work:",
+                        MessageBoxImage.Warning
+                    );
+                }
+                else if(GlTest.BestCtx.GlCtxInfo != null)
+                {
+                    // D2GL requires a 3.3 context at minimum. Might as well crash with Access Violation otherwise.
+                    // It effectively asks for 3.3 Core profile, but any 3.3+ should be fine.
+                    if (GlTest.BestCtx.GlCtxInfo.Version < new Version(3, 3))
+                    {
+                        MsgBox.Warn(
+                            "Selected 3dfx (D2GL) renderer wrapper might not work.\n" +
+                            "D2GL requires at least a 3.3 context.\n" +
+                            "\n" +
+                            "Best GL context created:\n" +
+                            "\n" +
+                            GlTest.BestCtx.GlCtxInfo.ToString()
+                        );
+                    }
+                }
+            }
+            else
+            {
+                if (GlTest.BestCtx.GlCtxInfo == null && GlTest.BestCtx.StageReached.IndicatesGlFailure())
+                {
+                    MsgBox.Exception(
+                        GlTest.BestCtx.Exception,
+                        "Selected DDraw (cnc-ddraw) renderer wrapper (set to OpenGL renderer) might not work:",
+                        MessageBoxImage.Warning
+                    );
+                }
+            }
         }
 
         private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
