@@ -252,7 +252,7 @@ namespace PD2Launcherv2
 
             if (Wine.IsRunningUnderWine)
             {
-                WineLogo16Image.ToolTip = Wine.WineVersion != null ? $"Wine {Wine.WineVersion} detected" : "Undetermined Wine version";
+                WineLogo16Image.ToolTip = Wine.Version != null ? $"Wine {Wine.Version} detected" : "Undetermined Wine version";
             }
             else
             {

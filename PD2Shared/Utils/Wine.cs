@@ -49,9 +49,6 @@ namespace PD2Shared.Utils
             public WineException(string? message, Exception? innerException = null) : base(message, innerException) { }
         }
 
-        private static readonly bool _runningUnderWine = false;
-        private static readonly Version? _wineVersion = null;
-
         static Wine()
         {
             string versionString;
@@ -65,16 +62,20 @@ namespace PD2Shared.Utils
                 return;
             }
 
-            _runningUnderWine = true;
+            IsRunningUnderWine = true;
 
-            if (!Version.TryParse(versionString, out _wineVersion))
+            if (Version.TryParse(versionString, out Version? version))
             {
-                L.CallerError($"Failed to parse Wine {nameof(versionString)}: '{versionString}'");
+                Version = version;
+            }
+            else
+            {
+                L.CallerError($"Failed to parse output of {nameof(DllImports.wine_get_version)}(): '{versionString}'");
             }
         }
 
-        public static Version? WineVersion { get => _wineVersion; }
-        public static bool IsRunningUnderWine { get => _runningUnderWine; }
+        public static Version? Version { get; }
+        public static bool IsRunningUnderWine { get; }
 
         public static void ApplyWineConfiguration()
         {

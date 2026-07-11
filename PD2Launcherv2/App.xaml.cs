@@ -14,6 +14,7 @@ using PD2Launcherv2.Utils;
 using PD2Shared.GameFileUpdate;
 using PD2Shared.Logging;
 using static PD2Shared.Logging.LoggingStatic;
+using PD2Shared.Utils;
 
 [assembly: System.Runtime.CompilerServices.RuntimeCompatibilityAttribute(WrapNonExceptionThrows = true)]
 
@@ -147,6 +148,18 @@ namespace PD2Launcherv2
 
             // This is not expected to throw
             Logging.SetUp(createConsole);
+
+            if (Wine.IsRunningUnderWine)
+            {
+                if (Wine.Version != null)
+                {
+                    L.CallerInformation($"Running under Wine {Wine.Version}");
+                }
+                else
+                {
+                    L.CallerInformation($"Running under an undetermined Wine version");
+                }
+            }
 
             L.CallerInformation($"Using up to {Environment.ProcessorCount} concurrent task(s)");
 
