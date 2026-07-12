@@ -26,6 +26,8 @@ namespace PD2Launcherv2
     /// </summary>
     public partial class App : Application
     {
+        private readonly Stopwatch _bootStopwatch = Stopwatch.StartNew();
+
         /// <summary>
         /// Holds the service provider for dependency injection.
         /// </summary>
@@ -174,7 +176,20 @@ namespace PD2Launcherv2
             // Normal UI mode
             base.OnStartup(e);
             var mainWindow = _serviceProvider.GetService<MainWindow>();
+
+            if (mainWindow != null)
+            {
+                mainWindow.ContentRendered += MainWindow_ContentRendered;
+            }
+
             mainWindow?.Show();
+        }
+
+        private void MainWindow_ContentRendered(object? sender, EventArgs e)
+        {
+            ((MainWindow)sender!).ContentRendered -= MainWindow_ContentRendered;
+
+            L.CallerDebug($"Time till {nameof(MainWindow)} rendered: {_bootStopwatch.Elapsed}.");
         }
 
         protected override void OnExit(ExitEventArgs e)
