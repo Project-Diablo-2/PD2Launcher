@@ -155,7 +155,24 @@ namespace PD2Launcherv2
             {
                 if (Wine.Version != null)
                 {
-                    L.CallerInformation($"Running under Wine {Wine.Version}");
+                    string wineVersionStr = Wine.Version.ToString();
+
+                    if (Wine.BuildId != null)
+                    {
+                        wineVersionStr += $" ({Wine.BuildId})";
+                    }
+
+                    if (Wine.OsName != null)
+                    {
+                        wineVersionStr += $" on {Wine.OsName}";
+
+                        if (Wine.OsRelease != null)
+                        {
+                            wineVersionStr += $" {Wine.OsRelease}";
+                        }
+                    }
+
+                    L.CallerInformation($"Running under Wine {wineVersionStr}");
                 }
                 else
                 {

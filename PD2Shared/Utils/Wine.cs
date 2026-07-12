@@ -9,11 +9,22 @@ namespace PD2Shared.Utils
     {
         private static class DllImports
         {
-            [DllImport("ntdll.dll", CharSet = CharSet.Ansi)]
+            [DllImport("ntdll.dll", CallingConvention = CallingConvention.Cdecl)]
             [System.Diagnostics.CodeAnalysis.SuppressMessage("Globalization",
                 "CA2101:Specify marshaling for P/Invoke string arguments",
-                Justification = "UTF-8 strings are expected, thus CharSet.Ansi is the correct choice.")]
+                Justification = "UTF-8 strings are expected, thus MarshalAs(UnmanagedType.LPUTF8Str) is the correct choice.")]
+            [return: MarshalAs(UnmanagedType.LPUTF8Str)]
             public static extern string wine_get_version();
+
+            [DllImport("ntdll.dll", CallingConvention = CallingConvention.Cdecl)]
+            [System.Diagnostics.CodeAnalysis.SuppressMessage("Globalization",
+                "CA2101:Specify marshaling for P/Invoke string arguments",
+                Justification = "UTF-8 strings are expected, thus MarshalAs(UnmanagedType.LPUTF8Str) is the correct choice.")]
+            [return: MarshalAs(UnmanagedType.LPUTF8Str)]
+            public static extern string wine_get_build_id();
+
+            [DllImport("ntdll.dll", CallingConvention = CallingConvention.Cdecl)]
+            public static extern void wine_get_host_version(ref IntPtr sysname, ref IntPtr release);
         }
 
         const string HkcuExeKeyPath = @"Software\Wine\AppDefaults\Game.exe";
@@ -51,7 +62,7 @@ namespace PD2Shared.Utils
 
         static Wine()
         {
-            string versionString;
+            string? versionString;
 
             try
             {
@@ -72,10 +83,37 @@ namespace PD2Shared.Utils
             {
                 L.CallerError($"Failed to parse output of {nameof(DllImports.wine_get_version)}(): '{versionString}'");
             }
+
+            try
+            {
+                BuildId = DllImports.wine_get_build_id();
+            }
+            catch (EntryPointNotFoundException)
+            {
+                L.CallerWarning($"{nameof(DllImports.wine_get_build_id)}() entry point not found");
+            }
+
+            try
+            {
+                IntPtr sysnamePtr = IntPtr.Zero;
+                IntPtr releasePtr = IntPtr.Zero;
+
+                DllImports.wine_get_host_version(ref sysnamePtr, ref releasePtr);
+
+                OsName = Marshal.PtrToStringUTF8(sysnamePtr);
+                OsRelease = Marshal.PtrToStringUTF8(releasePtr);
+            }
+            catch (EntryPointNotFoundException)
+            {
+                L.CallerWarning($"{nameof(DllImports.wine_get_host_version)}() entry point not found");
+            }
         }
 
-        public static Version? Version { get; }
         public static bool IsRunningUnderWine { get; }
+        public static Version? Version { get; }
+        public static string? BuildId { get; }
+        public static string? OsName { get; }
+        public static string? OsRelease { get; }
 
         public static void ApplyWineConfiguration()
         {
