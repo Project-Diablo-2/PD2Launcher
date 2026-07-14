@@ -9,9 +9,9 @@
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="BorderBrush" Value="Transparent"/>
         <Setter Property="BorderThickness" Value="0"/>
-        <Setter Property="FontFamily" Value="{StaticResource BlizzHeavy}"/>
+        <Setter Property="FontFamily" Value="{DynamicResource BlizzHeavy}"/>
         <Setter Property="FontSize" Value="16"/>
-        <Setter Property="Foreground" Value="{StaticResource GoldBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource GoldBrush}"/>
         <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
         <Setter Property="Focusable" Value="False"/>
         <Setter Property="Margin" Value="0,0,0,20"/>
@@ -32,19 +32,19 @@
         </Setter>
         <Style.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
-                <Setter Property="Foreground" Value="{StaticResource GoldLighterBrush}"/>
+                <Setter Property="Foreground" Value="{DynamicResource GoldLighterBrush}"/>
             </Trigger>
         </Style.Triggers>
     </Style>
 
     <Style x:Key="HyperlinkStyle" TargetType="Hyperlink">
         <Setter Property="OverridesDefaultStyle" Value="True"/>
-        <Setter Property="Foreground" Value="{StaticResource GoldBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource GoldBrush}"/>
         <Setter Property="FontSize" Value="18"/>
         <Setter Property="FontFamily" Value="{DynamicResource BlizzMedium}"/>
         <Style.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
-                <Setter Property="Foreground" Value="{StaticResource WhiteBrush}"/>
+                <Setter Property="Foreground" Value="{DynamicResource WhiteBrush}"/>
                 <Setter Property="Cursor" Value="Hand"/>
             </Trigger>
         </Style.Triggers>
@@ -58,7 +58,7 @@
 
     <Style x:Key="HyperlinkTextBlockSeparatorStyle" TargetType="TextBlock">
         <Setter Property="Margin" Value="5"/>
-        <Setter Property="Foreground" Value="{StaticResource GoldBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource GoldBrush}"/>
         <Setter Property="FontSize" Value="20"/>
         <Setter Property="Text" Value="&#x2022;"/> <!-- "•" without resorting to a dedicated resource/constant -->
     </Style>
@@ -286,9 +286,9 @@
     </Style>
 
     <Style x:Key="CustomColorChangeButton" TargetType="Button">
-        <Setter Property="Background" Value="{StaticResource GoldBrush}" />
-        <Setter Property="Foreground" Value="{StaticResource BlackBrush}" />
-        <Setter Property="FontFamily" Value="{StaticResource BlizzMedium}" />
+        <Setter Property="Background" Value="{DynamicResource GoldBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource BlackBrush}" />
+        <Setter Property="FontFamily" Value="{DynamicResource BlizzMedium}" />
         <Setter Property="FontSize" Value="22" />
         <Setter Property="FocusVisualStyle" Value="{x:Null}" />
         <Setter Property="Padding" Value="5" />
@@ -303,10 +303,10 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter Property="Background" Value="{StaticResource GoldLighterBrush}" />
+                            <Setter Property="Background" Value="{DynamicResource GoldLighterBrush}" />
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter Property="Background" Value="{StaticResource ShakoBrush}" />
+                            <Setter Property="Background" Value="{DynamicResource ShakoBrush}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -315,7 +315,7 @@
     </Style>
 
     <Style x:Key="ImageFillProgressBarStyle" TargetType="{x:Type ProgressBar}">
-        <Setter Property="Foreground" Value="{StaticResource GoldDarkerBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource GoldDarkerBrush}" />
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="Template">
             <Setter.Value>
@@ -336,8 +336,8 @@
     <!-- Close Button -->
     <Style x:Key="CloseButtonStyle" TargetType="Button">
         <Setter Property="Background" Value="Transparent"/>
-        <Setter Property="Foreground" Value="{StaticResource GoldBrush}"/>
-        <Setter Property="FontFamily" Value="{StaticResource BlizzHeavy}"/>
+        <Setter Property="Foreground" Value="{DynamicResource GoldBrush}"/>
+        <Setter Property="FontFamily" Value="{DynamicResource BlizzHeavy}"/>
         <Setter Property="FontSize" Value="24"/>
         <Setter Property="FontWeight" Value="Bold"/>
         <Setter Property="BorderBrush" Value="Transparent"/>
@@ -360,7 +360,7 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter Property="BorderBrush" Value="{StaticResource ShakoBrush}" />
+                            <Setter Property="BorderBrush" Value="{DynamicResource ShakoBrush}" />
                             <Setter Property="Foreground" Value="White"/>
                             <Setter Property="BorderThickness" Value="2.5" />
                         </Trigger>
@@ -383,7 +383,7 @@
                         <RepeatButton Grid.Row="0" Command="ScrollBar.LineUpCommand" 
                                   Content="UP" 
                                   Background="Transparent"
-                                  Foreground="{StaticResource GoldBrush}">
+                                  Foreground="{DynamicResource GoldBrush}">
                             <RepeatButton.ContentTemplate>
                                 <DataTemplate>
                                     <Image Source="pack://application:,,,/Resources/Images/thin_prev.jpg"/>
@@ -392,13 +392,13 @@
                         </RepeatButton>
                         <Track Grid.Row="1" Name="PART_Track" IsDirectionReversed="true">
                             <Track.Thumb>
-                                <Thumb Background="{StaticResource GoldDarkerBrush}" BorderBrush="Transparent"/>
+                                <Thumb Background="{DynamicResource GoldDarkerBrush}" BorderBrush="Transparent"/>
                             </Track.Thumb>
                         </Track>
                         <RepeatButton Grid.Row="2" Command="ScrollBar.LineDownCommand" 
                                   Content="DOWN" 
                                   Background="Transparent"
-                                  Foreground="{StaticResource GoldBrush}">
+                                  Foreground="{DynamicResource GoldBrush}">
                             <RepeatButton.ContentTemplate>
                                 <DataTemplate>
                                     <Image Source="pack://application:,,,/Resources/Images/thin_next.jpg"/>
@@ -413,7 +413,7 @@
 
 
     <Style x:Key="CustomListBoxItemStyle" TargetType="ListBoxItem">
-        <Setter Property="Foreground" Value="{StaticResource GoldBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource GoldBrush}" />
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="Template">
             <Setter.Value>
@@ -424,7 +424,7 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsSelected" Value="true">
-                            <Setter TargetName="Border" Property="Background" Value="{StaticResource ShakoBrush}" />
+                            <Setter TargetName="Border" Property="Background" Value="{DynamicResource ShakoBrush}" />
                             <Setter TargetName="Border" Property="BorderBrush" Value="Transparent" />
                             <Setter Property="Foreground" Value="White"/>
                         </Trigger>
@@ -438,7 +438,7 @@
     </Style>
 
     <Style x:Key="CustomNewsListBoxItemStyle" TargetType="ListBoxItem">
-        <Setter Property="Foreground" Value="{StaticResource SoftWhite}" />
+        <Setter Property="Foreground" Value="{DynamicResource SoftWhite}" />
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="Template">
             <Setter.Value>
@@ -462,9 +462,9 @@
     </Style>
 
     <Style TargetType="CheckBox" x:Key="CustomCheckBoxStyle">
-        <Setter Property="FontFamily" Value="{StaticResource BlizzMedium}"/>
+        <Setter Property="FontFamily" Value="{DynamicResource BlizzMedium}"/>
         <Setter Property="FontSize" Value="18"/>
-        <Setter Property="Foreground" Value="{StaticResource GoldLighterBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource GoldLighterBrush}"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="CheckBox">
@@ -505,9 +505,9 @@
 
 
     <Style x:Key="CustomTextBoxStyle" TargetType="{x:Type TextBox}">
-        <Setter Property="Foreground" Value="{StaticResource GoldBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource GoldBrush}"/>
         <Setter Property="Background" Value="#FF333333"/>
-        <Setter Property="BorderBrush" Value="{StaticResource GoldBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource GoldBrush}"/>
         <Setter Property="HorizontalAlignment" Value="Left"/>
         <Setter Property="Width" Value="175"/>
         <Setter Property="Margin" Value="10"/>
@@ -515,7 +515,7 @@
         <Setter Property="FocusVisualStyle" Value="{x:Null}" />
         <Setter Property="Padding" Value="4"/>
         <Setter Property="FontSize" Value="14"/>
-        <Setter Property="FontFamily" Value="{StaticResource BlizzLight}"/>
+        <Setter Property="FontFamily" Value="{DynamicResource BlizzLight}"/>
         <Setter Property="Height" Value="35"/>
         <Setter Property="Template">
             <Setter.Value>
@@ -531,31 +531,31 @@
         </Setter>
         <Style.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
-                <Setter Property="BorderBrush" Value="{StaticResource GoldLighterBrush}"/>
+                <Setter Property="BorderBrush" Value="{DynamicResource GoldLighterBrush}"/>
                 <Setter Property="BorderThickness" Value="2"/>
             </Trigger>
             <Trigger Property="IsFocused" Value="True">
-                <Setter Property="BorderBrush" Value="{StaticResource ShakoBrush}"/>
+                <Setter Property="BorderBrush" Value="{DynamicResource ShakoBrush}"/>
             </Trigger>
         </Style.Triggers>
     </Style>
 
     <Style x:Key="CustomComboBoxStyle" TargetType="ComboBox">
-        <Setter Property="Foreground" Value="{StaticResource GoldBrush}"/>
-        <Setter Property="FontFamily" Value="{StaticResource BlizzHeavy}"/>
+        <Setter Property="Foreground" Value="{DynamicResource GoldBrush}"/>
+        <Setter Property="FontFamily" Value="{DynamicResource BlizzHeavy}"/>
         <Setter Property="FontSize" Value="16"/>
         <Setter Property="Width" Value="175"/>
         <Setter Property="HorizontalAlignment" Value="Left"/>
         <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
         <Setter Property="Background" Value="#FF333333"/>
-        <Setter Property="BorderBrush" Value="{StaticResource GoldBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource GoldBrush}"/>
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="Margin" Value="0,0,0,20"/>
         <Setter Property="ItemContainerStyle">
             <Setter.Value>
                 <Style TargetType="ComboBoxItem">
                     <Setter Property="Background" Value="Transparent"/>
-                    <Setter Property="Foreground" Value="{StaticResource GoldBrush}"/>
+                    <Setter Property="Foreground" Value="{DynamicResource GoldBrush}"/>
                     <Setter Property="Template">
                         <Setter.Value>
                             <ControlTemplate TargetType="ComboBoxItem">
@@ -564,7 +564,7 @@
                                 </Border>
                                 <ControlTemplate.Triggers>
                                     <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter TargetName="Border" Property="Background" Value="{StaticResource ShakoBrush}"/>
+                                        <Setter TargetName="Border" Property="Background" Value="{DynamicResource ShakoBrush}"/>
                                         <Setter Property="Foreground" Value="White"/>
                                     </Trigger>
                                 </ControlTemplate.Triggers>
@@ -618,7 +618,7 @@
         </Setter>
         <Style.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
-                <Setter Property="Foreground" Value="{StaticResource GoldLighterBrush}"/>
+                <Setter Property="Foreground" Value="{DynamicResource GoldLighterBrush}"/>
             </Trigger>
         </Style.Triggers>
     </Style>
@@ -633,7 +633,7 @@
                             <RowDefinition Height="*"/>
                             <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
-                        <RepeatButton Grid.Row="0" Command="ScrollBar.LineUpCommand" Content="UP" Background="Black" Foreground="{StaticResource GoldBrush}">
+                        <RepeatButton Grid.Row="0" Command="ScrollBar.LineUpCommand" Content="UP" Background="Black" Foreground="{DynamicResource GoldBrush}">
                             <RepeatButton.ContentTemplate>
                                 <DataTemplate>
                                     <Image Source="pack://application:,,,/Resources/Images/thin_prev.jpg"/>
@@ -642,10 +642,10 @@
                         </RepeatButton>
                         <Track Grid.Row="1" Name="PART_Track" IsDirectionReversed="true">
                             <Track.Thumb>
-                                <Thumb Background="{StaticResource ShakoBrush}" BorderBrush="{StaticResource GoldBrush}" Foreground="Black"/>
+                                <Thumb Background="{DynamicResource ShakoBrush}" BorderBrush="{DynamicResource GoldBrush}" Foreground="Black"/>
                             </Track.Thumb>
                         </Track>
-                        <RepeatButton Grid.Row="2" Command="ScrollBar.LineDownCommand" Content="DOWN" Background="Black" Foreground="{StaticResource GoldBrush}">
+                        <RepeatButton Grid.Row="2" Command="ScrollBar.LineDownCommand" Content="DOWN" Background="Black" Foreground="{DynamicResource GoldBrush}">
                             <RepeatButton.ContentTemplate>
                                 <DataTemplate>
                                     <Image Source="pack://application:,,,/Resources/Images/thin_next.jpg"/>
@@ -661,14 +661,14 @@
     <Style x:Key="OptionsTextBlockHeaderStyle" TargetType="TextBlock">
         <Setter Property="Margin" Value="10"/>
         <Setter Property="FontWeight" Value="Bold"/>
-        <Setter Property="FontFamily" Value="{StaticResource BlizzMedium}"/>
-        <Setter Property="Foreground" Value="{StaticResource GoldBrush}"/>
+        <Setter Property="FontFamily" Value="{DynamicResource BlizzMedium}"/>
+        <Setter Property="Foreground" Value="{DynamicResource GoldBrush}"/>
         <Setter Property="FontSize" Value="14"/>
     </Style>
 
     <Style x:Key="OptionsSubText" TargetType="TextBlock">
-        <Setter Property="FontFamily" Value="{StaticResource BlizzMedium}"/>
-        <Setter Property="Foreground" Value="{StaticResource GoldDarkerBrush}"/>
+        <Setter Property="FontFamily" Value="{DynamicResource BlizzMedium}"/>
+        <Setter Property="Foreground" Value="{DynamicResource GoldDarkerBrush}"/>
         <Setter Property="Margin" Value="0,10,0,0"/>
     </Style>
 
