@@ -291,16 +291,12 @@
         <Setter Property="FontFamily" Value="{StaticResource BlizzMedium}" />
         <Setter Property="FontSize" Value="22" />
         <Setter Property="FocusVisualStyle" Value="{x:Null}" />
-        <Setter Property="Margin" Value="0,0,0,50" />
-        <Setter Property="Padding" Value="10,5" />
-        <Setter Property="BorderThickness" Value="2" />
-        <Setter Property="BorderBrush" Value="{StaticResource GoldBrush}" />
+        <Setter Property="Padding" Value="5" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
                     <Border Background="{TemplateBinding Background}" 
-                        BorderBrush="{TemplateBinding BorderBrush}" 
-                        BorderThickness="{TemplateBinding BorderThickness}" 
+                        Padding="{TemplateBinding Padding}"
                         CornerRadius="5">
                         <ContentPresenter HorizontalAlignment="Center" 
                                       VerticalAlignment="Center" />
