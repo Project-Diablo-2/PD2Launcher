@@ -17,6 +17,12 @@
         <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
         <converters:NullIfWhiteSpaceToNullConverter
             x:Key="NullIfWhiteSpaceToNullConverter"/>
+
+        <ResourceDictionary x:Key="ResourceDictionary">
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/Resources/Styles/ControlStyles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
     </Page.Resources>
 
     <Grid>

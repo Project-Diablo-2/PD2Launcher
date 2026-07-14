@@ -9,6 +9,14 @@
       Title="AboutView"
       DataContext="{Binding AboutViewModel, Source={StaticResource ViewModelLocator}}">
 
+    <Page.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/Resources/Styles/ControlStyles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Page.Resources>
+
     <Grid>
         <Image Source="pack://application:,,,/Resources/Images/bg_plain.jpg" Stretch="Fill"/>
 
