@@ -935,6 +935,7 @@ namespace PD2Launcherv2
                 _suppressRendererChangedMessages = true;
 
                 MainFrame.Navigate(new OptionsView());
+                MainFrame.Focus();
             }
             finally
             {
@@ -947,6 +948,7 @@ namespace PD2Launcherv2
             ClearNavigationStack();
             Overlay.Visibility = Visibility.Visible;
             MainFrame.Navigate(new FiltersView());
+            MainFrame.Focus();
         }
 
         private void ShowAboutView()
@@ -954,6 +956,7 @@ namespace PD2Launcherv2
             ClearNavigationStack();
             Overlay.Visibility = Visibility.Visible;
             MainFrame.Navigate(new AboutView());
+            MainFrame.Focus();
         }
 
         private void Hyperlink_RequestNavigate(object sender, RequestNavigateEventArgs e)
