@@ -37,16 +37,30 @@
         </Style.Triggers>
     </Style>
 
-    <Style x:Key="HyperlinkMouseOverStyle" TargetType="TextBlock">
-        <Setter Property="Margin" Value="5"/>
-        <Setter Property="FontSize" Value="20"/>
+    <Style x:Key="HyperlinkStyle" TargetType="Hyperlink">
+        <Setter Property="OverridesDefaultStyle" Value="True"/>
         <Setter Property="Foreground" Value="{StaticResource GoldBrush}"/>
         <Setter Property="FontSize" Value="18"/>
+        <Setter Property="FontFamily" Value="{DynamicResource BlizzMedium}"/>
         <Style.Triggers>
-        <Trigger Property="IsMouseOver" Value="True">
-            <Setter Property="Foreground" Value="{StaticResource WhiteBrush}" />
-        </Trigger>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Foreground" Value="{StaticResource WhiteBrush}"/>
+                <Setter Property="Cursor" Value="Hand"/>
+            </Trigger>
         </Style.Triggers>
+    </Style>
+
+    <Style x:Key="HyperlinkTextBlockWrapperStyle" TargetType="TextBlock">
+        <Setter Property="Margin" Value="10"/>
+        <Setter Property="HorizontalAlignment" Value="Center"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+
+    <Style x:Key="HyperlinkTextBlockSeparatorStyle" TargetType="TextBlock">
+        <Setter Property="Margin" Value="5"/>
+        <Setter Property="Foreground" Value="{StaticResource GoldBrush}"/>
+        <Setter Property="FontSize" Value="20"/>
+        <Setter Property="Text" Value="&#x2022;"/> <!-- "•" without resorting to a dedicated resource/constant -->
     </Style>
 
     <Style x:Key="{x:Static SystemParameters.FocusVisualStyleKey}">

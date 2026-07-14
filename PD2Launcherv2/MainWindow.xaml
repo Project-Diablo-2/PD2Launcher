@@ -38,49 +38,50 @@
             <!-- Hyperlink StackPanel, set it to row 0 -->
             <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,175,0,0">
                 <!-- Home -->
-                <TextBlock Margin="5" FontSize="20">
-                     <Hyperlink NavigateUri="https://www.projectdiablo2.com/market" RequestNavigate="Hyperlink_RequestNavigate">
-                       <TextBlock Text="Home" Style="{StaticResource HyperlinkMouseOverStyle}" FontFamily="{StaticResource BlizzMedium}"/>
-                      </Hyperlink>
+                <TextBlock Style="{StaticResource HyperlinkTextBlockWrapperStyle}">
+                    <Hyperlink Style="{StaticResource HyperlinkStyle}" NavigateUri="https://www.projectdiablo2.com/market" RequestNavigate="Hyperlink_RequestNavigate">
+                        Home
+                    </Hyperlink>
                 </TextBlock>
-                <TextBlock Text="•" Margin="5" FontSize="20" Foreground="{StaticResource GoldBrush}" />
+                <TextBlock Style="{StaticResource HyperlinkTextBlockSeparatorStyle}"/>
+
                 <!-- Trade -->
-                <TextBlock Margin="5" FontSize="20">
-                  <Hyperlink NavigateUri="https://www.projectdiablo2.com/market" RequestNavigate="Hyperlink_RequestNavigate">
-                   <TextBlock Text="Trade" Style="{StaticResource HyperlinkMouseOverStyle}" FontFamily="{StaticResource BlizzMedium}"/>
-                  </Hyperlink>
+                <TextBlock Style="{StaticResource HyperlinkTextBlockWrapperStyle}">
+                    <Hyperlink Style="{StaticResource HyperlinkStyle}" NavigateUri="https://www.projectdiablo2.com/market" RequestNavigate="Hyperlink_RequestNavigate">
+                        Trade
+                    </Hyperlink>
                 </TextBlock>
-                <TextBlock Text="•" Margin="5" FontSize="20" Foreground="{StaticResource GoldBrush}" />
+                <TextBlock Style="{StaticResource HyperlinkTextBlockSeparatorStyle}"/>
 
                 <!-- Reddit -->
-                <TextBlock Margin="5" FontSize="20">
-                      <Hyperlink NavigateUri="https://www.reddit.com/r/ProjectDiablo2/" RequestNavigate="Hyperlink_RequestNavigate">
-                          <TextBlock Text="Reddit" Style="{StaticResource HyperlinkMouseOverStyle}" FontFamily="{StaticResource BlizzMedium}"/>
-                      </Hyperlink>
-                 </TextBlock>
-                <TextBlock Text="•" Margin="5" FontSize="20" Foreground="{StaticResource GoldBrush}" />
+                <TextBlock Style="{StaticResource HyperlinkTextBlockWrapperStyle}">
+                    <Hyperlink Style="{StaticResource HyperlinkStyle}" NavigateUri="https://www.reddit.com/r/ProjectDiablo2/" RequestNavigate="Hyperlink_RequestNavigate">
+                        Reddit
+                    </Hyperlink>
+                </TextBlock>
+                <TextBlock Style="{StaticResource HyperlinkTextBlockSeparatorStyle}"/>
 
                 <!-- Twitter -->
-                <TextBlock Margin="5" FontSize="20">
-                     <Hyperlink NavigateUri="https://twitter.com/projectdiablo2" RequestNavigate="Hyperlink_RequestNavigate">
-                       <TextBlock Text="Twitter" Style="{StaticResource HyperlinkMouseOverStyle}" FontFamily="{StaticResource BlizzMedium}"/>
-                      </Hyperlink>
+                <TextBlock Style="{StaticResource HyperlinkTextBlockWrapperStyle}">
+                    <Hyperlink Style="{StaticResource HyperlinkStyle}" NavigateUri="https://twitter.com/projectdiablo2" RequestNavigate="Hyperlink_RequestNavigate">
+                        Twitter
+                    </Hyperlink>
                 </TextBlock>
-                <TextBlock Text="•" Margin="5" FontSize="20" Foreground="{StaticResource GoldBrush}" />
+                <TextBlock Style="{StaticResource HyperlinkTextBlockSeparatorStyle}"/>
 
                 <!-- Discord -->
-                <TextBlock Margin="5" FontSize="20">
-                      <Hyperlink NavigateUri="https://discord.com/invite/RgX4MWu" RequestNavigate="Hyperlink_RequestNavigate">
-                          <TextBlock Text="Discord" Style="{StaticResource HyperlinkMouseOverStyle}" FontFamily="{StaticResource BlizzMedium}"/>
-                       </Hyperlink>
-                 </TextBlock>
-                <TextBlock Text="•" Margin="5" FontSize="20" Foreground="{StaticResource GoldBrush}" />
+                <TextBlock Style="{StaticResource HyperlinkTextBlockWrapperStyle}">
+                    <Hyperlink Style="{StaticResource HyperlinkStyle}" NavigateUri="https://discord.com/invite/RgX4MWu" RequestNavigate="Hyperlink_RequestNavigate">
+                        Discord
+                    </Hyperlink>
+                </TextBlock>
+                <TextBlock Style="{StaticResource HyperlinkTextBlockSeparatorStyle}"/>
 
                 <!-- Wiki -->
-                <TextBlock Margin="5" FontSize="20">
-                      <Hyperlink NavigateUri="https://wiki.projectdiablo2.com/wiki/Main_Page" RequestNavigate="Hyperlink_RequestNavigate">
-                         <TextBlock Text="Wiki" Style="{StaticResource HyperlinkMouseOverStyle}" FontFamily="{StaticResource BlizzMedium}"/>
-                      </Hyperlink>
+                <TextBlock Style="{StaticResource HyperlinkTextBlockWrapperStyle}">
+                    <Hyperlink Style="{StaticResource HyperlinkStyle}" NavigateUri="https://wiki.projectdiablo2.com/wiki/Main_Page" RequestNavigate="Hyperlink_RequestNavigate">
+                        Wiki
+                    </Hyperlink>
                 </TextBlock>
             </StackPanel>
             <StackPanel Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0">
