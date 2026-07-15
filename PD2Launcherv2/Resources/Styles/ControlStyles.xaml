@@ -333,6 +333,24 @@
         </Setter>
     </Style>
 
+    <Style x:Key="SimpleProgressBarStyle" TargetType="{x:Type ProgressBar}">
+        <Setter Property="Foreground" Value="{DynamicResource GoldLighterBrush}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ProgressBar">
+                    <Grid>
+                        <Rectangle Name="PART_Track" Fill="{TemplateBinding Background}" />
+                        <Rectangle Name="PART_Indicator"
+                                   HorizontalAlignment="Left"
+                                   Opacity="0.75"
+                                   Fill="{TemplateBinding Foreground}" />
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- Close Button -->
     <Style x:Key="CloseButtonStyle" TargetType="Button">
         <Setter Property="Background" Value="Transparent"/>

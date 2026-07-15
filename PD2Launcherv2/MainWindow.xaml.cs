@@ -78,6 +78,17 @@ namespace PD2Launcherv2
 
         private bool _suppressRendererChangedMessages = false;
 
+        // Auto-close
+        private static readonly TimeSpan AutoCloseTimeSpan = TimeSpan.FromSeconds(10);
+
+        private readonly object _autoCloseLock = new();
+        private bool _autoCloseActive = false;
+        private Process? _autoCloseGameProcess = null;
+        private readonly EventWaitHandle _autoCloseThreadInterrupt = new(initialState: false, EventResetMode.ManualReset);
+        private Thread? _autoCloseThread = null;
+        private readonly Stopwatch _autoCloseProgressUpdateStopwatch = new();
+        private DispatcherTimer? _autoCloseProgressUpdateTimer = null;
+
         private bool _isBeta;
         public bool IsBeta
         {
@@ -181,6 +192,21 @@ namespace PD2Launcherv2
             }
         }
 
+        private bool _autoCloseAfterLaunch;
+        public bool AutoCloseAfterLaunch
+        {
+            get => _autoCloseAfterLaunch;
+            set
+            {
+                if (_autoCloseAfterLaunch != value)
+                {
+                    _autoCloseAfterLaunch = value;
+                    AutoCloseCheckBox.IsChecked = _autoCloseAfterLaunch;
+                    OnPropertyChanged(nameof(AutoCloseAfterLaunch));
+                }
+            }
+        }
+
         private Visibility _updatesNotificationVisibility = Visibility.Collapsed;
         public Visibility UpdatesNotificationVisibility
         {
@@ -270,6 +296,10 @@ namespace PD2Launcherv2
                 WineLogo16Image.Visibility = Visibility.Hidden;
             }
 
+            // Auto-close
+            AutoCloseResetProgress();
+            InputManager.Current.PostProcessInput += AutoClosePostProcessInput;
+
             // Don't try to update launcher in debug mode
             // TEST
 
@@ -279,6 +309,7 @@ namespace PD2Launcherv2
                 CheckForUpdates();
 #endif
         }
+
         private void OnNavigationMessageReceived(NavigationMessage message)
         {
             Overlay.Visibility = Visibility.Collapsed;
@@ -584,23 +615,40 @@ namespace PD2Launcherv2
                     return;
                 }
 
-                UpdatePlayButtonText("Launching...");
-                try
                 {
+                    UpdatePlayButtonText("Launching...");
+
                     if (Process.GetProcessesByName("Game").Any())
                     {
                         MsgBox.Warn("Game is already running.");
                         return;
                     }
 
-                    _launchGameHelpers.LaunchGame(_localStorage);
+                    bool useAutoClose = AutoCloseAfterLaunch;
+                    Process gameProcess;
+
+                    try
+                    {
+                        gameProcess = _launchGameHelpers.LaunchGame(_localStorage, useAutoClose ? AutoCloseGameProcessExited : null);
+                    }
+                    catch (Exception ex)
+                    {
+                        L.CallerError(ex, $"{nameof(_launchGameHelpers.LaunchGame)}() threw");
+                        MsgBox.Exception(ex, "Failed to launch the game:");
+
+                        return;
+                    }
+
+                    if (useAutoClose)
+                    {
+                        AutoCloseBegin(gameProcess);
+                    }
+                    else
+                    {
+                        gameProcess.Dispose();
+                    }
 
                     await Task.Delay(TimeSpan.FromSeconds(1.5));
-                }
-                catch (Exception ex)
-                {
-                    L.CallerError(ex, $"{nameof(LaunchGameHelpers.LaunchGame)}() threw");
-                    MsgBox.Exception(ex, "Failed to launch the game:");
                 }
             }
             finally
@@ -646,6 +694,11 @@ namespace PD2Launcherv2
 
                 _closePending = true;
             }
+
+            if (AutoCloseAbort())
+            {
+                L.CallerDebug($"Auto-close aborted due to window closing.");
+            }
         }
 
         private void CheckKeys(KeyboardDevice kd)
@@ -687,6 +740,11 @@ namespace PD2Launcherv2
 
         private void Window_Activated(object sender, EventArgs e)
         {
+            if (AutoCloseAbort())
+            {
+                L.CallerDebug($"Auto-close aborted due to window activation.");
+            }
+
             // Attempt to refocus when closing a modal dialog to get keyboard focus back
             if (!this.IsKeyboardFocusWithin)
             {
@@ -1007,10 +1065,12 @@ namespace PD2Launcherv2
 
         private void LoadOptions()
         {
-            var launcherOptions = _localStorage.LoadSection<LauncherOptions>(StorageKey.LauncherOptions);
-            ForceSoftwareRenderer = launcherOptions?.ForceSoftwareRenderer == true;
-            UseHttp2 = launcherOptions?.UseHttp2 == true;
-            IsDisableUpdates = launcherOptions?.DisableAutoUpdate == true;
+            LauncherOptions launcherOptions = _localStorage.LoadSection<LauncherOptions>(StorageKey.LauncherOptions);
+
+            ForceSoftwareRenderer = launcherOptions.ForceSoftwareRenderer;
+            UseHttp2 = launcherOptions.UseHttp2;
+            IsDisableUpdates = launcherOptions.DisableAutoUpdate;
+            AutoCloseAfterLaunch = launcherOptions.AutoCloseAfterLaunch;
         }
 
         private void OnConfigurationChanged(ConfigurationChangeMessage message)
@@ -1163,6 +1223,15 @@ namespace PD2Launcherv2
             Debug.WriteLine($"\n\n Saving window position: Left = {this.Left}, Top = {this.Top} \n\n");
 
             _localStorage.Update(StorageKey.WindowPosition, windowPosition);
+
+            // <!> Usage of these local values instead of LocalStorage directly might lead to discrepancy
+            _localStorage.Update(StorageKey.LauncherOptions, new LauncherOptions
+            {
+                ForceSoftwareRenderer = this.ForceSoftwareRenderer,
+                UseHttp2 = this.UseHttp2,
+                DisableAutoUpdate = this.IsDisableUpdates,
+                AutoCloseAfterLaunch = this.AutoCloseAfterLaunch
+            });
         }
 
         private void EnsureWindowIsVisible()
@@ -1567,6 +1636,161 @@ namespace PD2Launcherv2
                 L.CallerWarning(ex, $"{nameof(Shell.OpenFolderAndSelectItemsAsync)}() threw");
                 MsgBox.Exception(ex, "Failed to navigate to the log file:", MessageBoxImage.Warning);
             }
+        }
+
+        private void AutoCloseBegin(Process gameProcess)
+        {
+            lock (_autoCloseLock)
+            {
+                if (_autoCloseActive)
+                {
+                    return;
+                }
+
+                if (gameProcess.HasExited)
+                {
+                    // If the process has already terminated -- bail
+                    return;
+                }
+
+                _autoCloseGameProcess = gameProcess;
+
+                _autoCloseProgressUpdateStopwatch.Restart();
+                _autoCloseProgressUpdateTimer = new DispatcherTimer(
+                    TimeSpan.FromMilliseconds(UpdateThrottle.DefaultIntervalMilliseconds),
+                    DispatcherPriority.Render,
+                    AutoCloseProgressUpdateTimer,
+                    this.Dispatcher
+                );
+                _autoCloseProgressUpdateTimer.Start();
+
+                _autoCloseThreadInterrupt.Reset();
+                _autoCloseThread = new Thread(AutoCloseThread);
+                _autoCloseThread.Start();
+
+                _autoCloseActive = true;
+
+                L.CallerDebug($"Auto-closing in {AutoCloseTimeSpan}...");
+            }
+        }
+
+        private bool AutoCloseAbort(bool joinThread = true)
+        {
+            Thread? autoCloseThread = null;
+
+            lock (_autoCloseLock)
+            {
+                if (!_autoCloseActive)
+                {
+                    return false;
+                }
+
+                _autoCloseThreadInterrupt.Set();
+                if (joinThread)
+                {
+                    autoCloseThread = _autoCloseThread;
+                }
+                _autoCloseThread = null;
+
+                _autoCloseProgressUpdateTimer!.Stop();
+                _autoCloseProgressUpdateTimer = null;
+
+                this.Dispatcher.Invoke(AutoCloseResetProgress);
+
+                _autoCloseGameProcess!.Exited -= AutoCloseGameProcessExited;
+                _autoCloseGameProcess = null;
+
+                _autoCloseActive = false;
+            }
+
+            autoCloseThread?.Join();
+
+            return true;
+        }
+
+        private void AutoCloseResetProgress()
+        {
+            AutoCloseProgressBar.Value = 0;
+        }
+
+        private void AutoCloseGameProcessExited(object? sender, EventArgs e)
+        {
+            // This will be called from a thread pool
+
+            if (!AutoCloseAbort())
+            {
+                // If not active yet -- just bail.
+                // AutoCloseBegin() will also bail if the process has terminated already.
+                return;
+            }
+
+            if (sender is Process process)
+            {
+                L.CallerDebug($"Auto-close aborted due to game process terminating with {process.ExitCode} exit code.");
+
+                process.Dispose();
+            }
+            else
+            {
+                L.CallerDebug($"Auto-close aborted due to game process terminating.");
+            }
+
+            this.Dispatcher.Invoke(() =>
+            {
+                // Try to bring the window into foreground
+                this.Topmost = true;
+                this.Activate();
+                this.Topmost = false;
+            });
+        }
+
+        private void AutoClosePostProcessInput(object sender, ProcessInputEventArgs e)
+        {
+            if (e.StagingItem.Input is MouseButtonEventArgs m)
+            {
+                // Minimize number of different events being handled here
+                if (m.ButtonState == MouseButtonState.Pressed && m.RoutedEvent.RoutingStrategy == RoutingStrategy.Tunnel)
+                {
+                    if (AutoCloseAbort())
+                    {
+                        L.CallerDebug($"Auto-close aborted due to mouse down event.");
+                    }
+                }
+            }
+            else if (e.StagingItem.Input is KeyEventArgs k)
+            {
+                // Minimize number of different events being handled here
+                if (k.IsDown && !k.IsRepeat && k.RoutedEvent.RoutingStrategy == RoutingStrategy.Tunnel)
+                {
+                    if (AutoCloseAbort())
+                    {
+                        L.CallerDebug($"Auto-close aborted due to key down event.");
+                    }
+                }
+            }
+        }
+
+        private void AutoCloseThread()
+        {
+            if (_autoCloseThreadInterrupt.WaitOne(AutoCloseTimeSpan))
+            {
+                return;
+            }
+            else
+            {
+                if (AutoCloseAbort(joinThread: false))
+                {
+                    L.CallerDebug("Auto-closing...");
+                    this.Dispatcher.Invoke(this.Close);
+                }
+            }
+        }
+
+        private void AutoCloseProgressUpdateTimer(object? sender, EventArgs e)
+        {
+            double progress = Math.Max(0, AutoCloseTimeSpan.Ticks - _autoCloseProgressUpdateStopwatch.Elapsed.Ticks) / (double)AutoCloseTimeSpan.Ticks;
+
+            AutoCloseProgressBar.Value = progress * AutoCloseProgressBar.Maximum;
         }
     }
 }

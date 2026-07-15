@@ -1,33 +1,38 @@
-﻿
-using PD2Shared.Interfaces;
+﻿using PD2Shared.Interfaces;
 using PD2Shared.Models;
+using PD2Shared.Logging;
+using static PD2Shared.Logging.LoggingStatic;
+using PD2Shared.Utils;
 using System.Diagnostics;
-using System.IO;
-using System.Windows;
 
 namespace PD2Shared.Helpers
 {
     public class LaunchGameHelpers : ILaunchGameHelpers
     {
-        public void LaunchGame(ILocalStorage localStorage)
+        public Process LaunchGame(ILocalStorage localStorage, EventHandler? exitedEventHandler = null)
         {
-            var fileUpdateModel = localStorage.LoadSection<FileUpdateModel>(PD2Shared.Models.StorageKey.FileUpdateModel);
+            LauncherArgs launcherArgs = localStorage.LoadSection<LauncherArgs>(StorageKey.LauncherArgs);
 
-            string diabloIIExePath = Path.Combine(Directory.GetCurrentDirectory(), "Game.exe");
-
-            LauncherArgs launcherArgs = localStorage.LoadSection<LauncherArgs>(PD2Shared.Models.StorageKey.LauncherArgs);
-
-            string args = ConstructLaunchArguments(launcherArgs);
-
-            // Launch the game with the specified arguments.
-            var startInfo = new ProcessStartInfo
+            Process process = new()
             {
-                FileName = diabloIIExePath,
-                Arguments = args,
-                WorkingDirectory = Path.GetDirectoryName(diabloIIExePath)
+                EnableRaisingEvents = exitedEventHandler != null,
+                StartInfo = new()
+                {
+                    WorkingDirectory = Env.GetCwd(),
+                    FileName = Path.Combine(Env.GetCwd(), "Game.exe"),
+                    Arguments = ConstructLaunchArguments(launcherArgs),
+                }
             };
 
-            Process.Start(startInfo);
+            if (exitedEventHandler != null)
+            {
+                process.Exited += exitedEventHandler;
+            }
+
+            L.CallerInformation($"Launching: '\"{process.StartInfo.FileName}\" {process.StartInfo.Arguments}'...");
+
+            process.Start();
+            return process;
         }
 
         private string ConstructLaunchArguments(LauncherArgs launcherArgs)

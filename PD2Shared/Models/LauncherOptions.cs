@@ -5,5 +5,6 @@
         public bool ForceSoftwareRenderer { get; set; } = false;
         public bool UseHttp2 { get; set; } = false;
         public bool DisableAutoUpdate { get; set; } = false;
+        public bool AutoCloseAfterLaunch { get; set; } = false;
     }
 }

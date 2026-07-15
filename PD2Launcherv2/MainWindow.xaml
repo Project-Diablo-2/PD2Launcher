@@ -153,7 +153,7 @@
         </StackPanel>
 
         <!-- Aligned Button Grid (bottom center under news box) -->
-        <Grid HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="-1,0,0,10" Width="700">
+        <Grid HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,10" Width="700">
 
             <!-- Left Side: Aligned with News Left Edge -->
             <StackPanel HorizontalAlignment="Left"
@@ -189,6 +189,23 @@
                                                Text="Item filter profiles"
                                                Command="{Binding OpenLootCommand}"
                                                TabIndex="3"/>
+
+                    <!-- AutoCloseProgressBar and AutoCloseCheckBox -->
+                    <ProgressBar x:Name="AutoCloseProgressBar"
+                                 Height="3"
+                                 Style="{StaticResource SimpleProgressBarStyle}"
+                                 Foreground="{DynamicResource GoldLighterBrush}"
+                                 Value="100"
+                                 Minimum="0"
+                                 Maximum="{Binding ActualWidth, ElementName=AutoCloseProgressBar, Mode=OneWay}"/>
+                    <CheckBox x:Name="AutoCloseCheckBox"
+                              Content="Close after launch"
+                              IsChecked="{Binding AutoCloseAfterLaunch, Mode=TwoWay}"
+                              Style="{StaticResource CustomCheckBoxStyle}"
+                              Foreground="{DynamicResource GoldBrush}"
+                              FontFamily="{StaticResource BlizzMedium}"
+                              FontSize="12"
+                              Opacity="0.75"/>
                 </StackPanel>
 
                 <!-- Second column: Cancel button and various progress text blocks -->
@@ -300,13 +317,13 @@
                Source="pack://application:,,,/Resources/Images/btn_no_updates3.jpg" Stretch="Fill"
                HorizontalAlignment="Left"
                VerticalAlignment="Bottom"
-               Margin="50,0,0,130"
+               Margin="50,0,0,132"
                Visibility="{Binding UpdatesNotificationVisibility}" />
 
         <!-- Wine indicator -->
         <Image x:Name="WineLogo16Image" VerticalAlignment="Bottom" HorizontalAlignment="Right" Source="pack://application:,,,/Resources/Images/winelogo16.png" Margin="0,0,17,3"/>
 
-        <Grid Margin="17,470,750,95" Height="{Binding ActualHeight, ElementName=PlayButton, Mode=OneWay}" Width="33">
+        <Grid Margin="17,468,750,97" Height="{Binding ActualHeight, ElementName=PlayButton, Mode=OneWay}" Width="33">
             <Image x:Name="OfflineIndicatorImage" Source="pack://application:,,,/Resources/Images/offline24.png" HorizontalAlignment="Center" VerticalAlignment="Center" ToolTip="Offline"/>
         </Grid>
 
