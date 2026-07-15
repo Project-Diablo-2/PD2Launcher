@@ -159,7 +159,7 @@ namespace PD2Shared.Utils
             {
                 if (key == null)
                 {
-                    throw new WineException($"Failed to create '{Registry.CurrentUser}{HkcuExeKeyPath}' registry key");
+                    throw new WineException($"Failed to create registry key: '{Registry.CurrentUser}\\{HkcuExeKeyPath}'");
                 }
 
                 key.SetValue("Version", "win7", RegistryValueKind.String);
@@ -169,7 +169,7 @@ namespace PD2Shared.Utils
             {
                 if (key == null)
                 {
-                    throw new WineException($"Failed to create '{Registry.CurrentUser}{HkcuDllOverridesKeyPath}' registry key");
+                    throw new WineException($"Failed to create registry key: '{Registry.CurrentUser}\\{HkcuDllOverridesKeyPath}'");
                 }
 
                 // Provided DDraw wrapper
@@ -186,7 +186,7 @@ namespace PD2Shared.Utils
             {
                 if (key == null)
                 {
-                    throw new WineException($"Failed to create '{Registry.CurrentUser}{HkcuX11KeyPath}' registry key");
+                    throw new WineException($"Failed to create registry key: '{Registry.CurrentUser}\\{HkcuX11KeyPath}'");
                 }
 
                 // Emulate modesetting
