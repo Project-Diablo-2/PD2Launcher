@@ -245,8 +245,6 @@ namespace PD2Launcherv2
             _newsHelpers = (NewsHelpers)App.ServiceProvider.GetService(typeof(NewsHelpers));
             _gameFileUpdater = (GameFileUpdater)App.ServiceProvider.GetService(typeof(GameFileUpdater));
             LoadAndUpdateDDrawOptions();
-            InitWindow();
-            EnsureWindowIsVisible();
             Loaded += MainWindow_Loaded;
             LoadConfiguration();
             LoadOptions();
@@ -1156,6 +1154,8 @@ namespace PD2Launcherv2
 
         private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
+            RestoreWindowPosition();
+
             await InitializeAsync();
         }
 
@@ -1240,9 +1240,11 @@ namespace PD2Launcherv2
             });
         }
 
-        private void EnsureWindowIsVisible()
+        private void RestoreWindowPosition()
         {
-            var windowPosition = _localStorage.LoadSection<WindowPositionModel>(StorageKey.WindowPosition);
+            WindowPositionModel windowPosition = _localStorage.LoadSection<WindowPositionModel>(StorageKey.WindowPosition);
+
+            Debug.WriteLine($"\n\n Loaded window position: Left = {windowPosition.Left}, Top = {windowPosition.Top} \n\n");
 
             // Check if the window is out of bounds
             bool isOutOfBounds =
@@ -1251,25 +1253,7 @@ namespace PD2Launcherv2
                 windowPosition.Left > SystemParameters.VirtualScreenLeft + SystemParameters.VirtualScreenWidth ||
                 windowPosition.Top > SystemParameters.VirtualScreenTop + SystemParameters.VirtualScreenHeight;
 
-            if (windowPosition == null || isOutOfBounds)
-            {
-                CenterWindowOnScreen();
-            }
-            else
-            {
-                // Restore the window to its last saved position
-                this.Left = windowPosition.Left;
-                this.Top = windowPosition.Top;
-            }
-        }
-
-        private void InitWindow()
-        {
-            var windowPosition = _localStorage.LoadSection<WindowPositionModel>(StorageKey.WindowPosition);
-
-            Debug.WriteLine($"\n\n Loaded window position: Left = {windowPosition?.Left}, Top = {windowPosition?.Top} \n\n");
-
-            if (windowPosition == null || (windowPosition.Left == 0 && windowPosition.Top == 0))
+            if (windowPosition == null || isOutOfBounds || (windowPosition.Left == 0 && windowPosition.Top == 0))
             {
                 CenterWindowOnScreen();
             }
