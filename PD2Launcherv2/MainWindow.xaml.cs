@@ -386,6 +386,18 @@ namespace PD2Launcherv2
 
             // Store this early on to allow releasing the keys immediately upon clicking the button
             KeyComboDown keyComboDown = _keyComboDown;
+
+            if (keyComboDown == KeyComboDown.Play)
+            {
+                if (LaunchGameHelpers.IsGameRunning)
+                {
+                    L.CallerWarning("Attempted to start the game while another instance is already running.");
+
+                    MsgBox.Warn("Another instance of the game is already running.");
+                    return;
+                }
+            }
+
             UpdateMode updateMode;
             bool noFilterUpdate;
             bool noLaunch;
@@ -617,12 +629,6 @@ namespace PD2Launcherv2
 
                 {
                     UpdatePlayButtonText("Launching...");
-
-                    if (Process.GetProcessesByName("Game").Any())
-                    {
-                        MsgBox.Warn("Game is already running.");
-                        return;
-                    }
 
                     bool useAutoClose = AutoCloseAfterLaunch;
                     Process gameProcess;

@@ -107,7 +107,7 @@ namespace PD2Launcherv2
 
                 try
                 {
-                    if (Process.GetProcessesByName("Game").Any())
+                    if (LaunchGameHelpers.IsGameRunning)
                     {
                         Debug.WriteLine("Game already running.");
                         return;

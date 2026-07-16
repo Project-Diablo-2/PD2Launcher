@@ -4,11 +4,27 @@ using PD2Shared.Logging;
 using static PD2Shared.Logging.LoggingStatic;
 using PD2Shared.Utils;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 namespace PD2Shared.Helpers
 {
     public class LaunchGameHelpers : ILaunchGameHelpers
     {
+        private static class DllImports
+        {
+            [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+            public static extern IntPtr FindWindow([Optional] string? className, [Optional] string? windowName);
+        }
+
+        public static bool IsGameRunning
+        {
+            get
+            {
+                // This is basically the same check the actual game uses
+                return DllImports.FindWindow(className: "Diablo II", windowName: null) != IntPtr.Zero;
+            }
+        }
+
         public Process LaunchGame(ILocalStorage localStorage, EventHandler? exitedEventHandler = null)
         {
             LauncherArgs launcherArgs = localStorage.LoadSection<LauncherArgs>(StorageKey.LauncherArgs);
