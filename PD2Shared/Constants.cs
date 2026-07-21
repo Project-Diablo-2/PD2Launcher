@@ -4,8 +4,31 @@ namespace PD2Shared
 {
     public static class Constants
     {
+        public static class LauncherUpdate
+        {
+            public const string LegacyGcpMetadataUrl =
+                "https://storage.googleapis.com/storage/v1/b/pd2-launcher-update/o";
+
+            public const string AwsBaseUrl =
+                "https://pd2-launcher.projectdiablo2.com/";
+
+            public const string AwsManifestUrl =
+                AwsBaseUrl + "launcher_manifest.json";
+
+#if DEBUG
+            // Incremental AWS test.
+            public const string MetadataUrl = AwsManifestUrl;
+#else
+            public const string MetadataUrl = AwsManifestUrl;
+#endif
+        }
+
         public static readonly List<string> excludedFiles = new List<string>
-        { "D2.LNG", "BnetLog.txt", "ProjectDiablo.cfg", "ddraw.ini", "default.filter", "loot.filter", "UI.ini", "d2gl.yaml"};
+        {
+            "D2.LNG", "BnetLog.txt", "ProjectDiablo.cfg", "ddraw.ini", "default.filter", "loot.filter", "UI.ini", "d2gl.yaml",
+            // PD2Shared is bundled in the fatexe's
+            "PD2Shared.dll"
+        };
 
         public static class Ddraw
         {

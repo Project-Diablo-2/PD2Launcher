@@ -5,7 +5,9 @@ namespace ProjectDiablo2Launcherv2
     public static class Constants
     {
         public static readonly List<string> excludedFiles = new List<string>
-        { "D2.LNG", "BnetLog.txt", "ProjectDiablo.cfg", "ddraw.ini", "default.filter", "loot.filter", "UI.ini", "d2gl.yaml"};
+        { 
+            "D2.LNG", "BnetLog.txt", "ProjectDiablo.cfg", "ddraw.ini", "default.filter", "loot.filter", "UI.ini", "d2gl.yaml",
+        };
 
         public static class Ddraw
         {

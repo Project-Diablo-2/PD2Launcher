@@ -44,12 +44,11 @@ namespace PD2Shared
                 {
                 ("PD2Launcher.exe", "TempPD2Launcher.exe"),
                 ("SteamPD2.exe", "TempSteamPD2.exe"),
-                ("PD2Shared.dll", "TempPD2Shared.dll"),
                 ("UpdateUtility.exe", "UpdateUtility.exe")
                 };
 
                 var updateModel = storage.LoadSection<FileUpdateModel>(StorageKey.FileUpdateModel);
-                var cloudItems = await fileUpdater.GetCloudFileMetadataAsync(updateModel.Launcher);
+                var cloudItems = await fileUpdater.GetCloudFileMetadataAsync(Constants.LauncherUpdate.MetadataUrl);
 
                 bool big4NeedsUpdate = false;
                 foreach (var (name, tempName) in big4)
@@ -87,7 +86,6 @@ namespace PD2Shared
 
                     string updateUtilPath = Path.Combine(installPath, "UpdateUtility.exe");
                     string args = $"\"{installPath}\\PD2Launcher.exe\" \"{installPath}\\TempPD2Launcher.exe\" " +
-                                  $"\"{installPath}\\PD2Shared.dll\" \"{installPath}\\TempPD2Shared.dll\" " +
                                   $"\"{installPath}\\SteamPD2.exe\" \"{installPath}\\TempSteamPD2.exe\" " +
                                   $"\"{finalExeToStart}\"";
 

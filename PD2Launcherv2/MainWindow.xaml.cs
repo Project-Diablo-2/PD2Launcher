@@ -145,7 +145,6 @@ namespace PD2Launcherv2
             FileUpdateModel storeUpdate = _localStorage.LoadSection<FileUpdateModel>(StorageKey.FileUpdateModel) ?? new FileUpdateModel
             {
                 Client = "https://pd2-client-files.projectdiablo2.com/",
-                Launcher = "https://storage.googleapis.com/storage/v1/b/pd2-launcher-update/o",
                 FilePath = "Live"
             };
 
@@ -159,10 +158,12 @@ namespace PD2Launcherv2
 
             // Don't try to update launcher in debug mode
             // TEST
-            #if DEBUG
-            #else
+
+#if DEBUG
+            CheckForUpdates();
+#else
                 CheckForUpdates();
-            #endif
+#endif
         }
         private void OnNavigationMessageReceived(NavigationMessage message)
         {
@@ -186,6 +187,12 @@ namespace PD2Launcherv2
         // trigger the update, in an async event handler
         private async void CheckForUpdates()
         {
+            Debug.WriteLine("\n\n -=-=-=-=-=-=-=- CheckForUpdates() start");
+            Debug.WriteLine($"☼§  IsDisableUpdates: {IsDisableUpdates}");
+            var installPath = Directory.GetCurrentDirectory();
+            Debug.WriteLine($"Current directory: {installPath}");
+            Debug.WriteLine($"Process path: {Environment.ProcessPath}");
+
             UpdateUIForOperationStart(); // Prepare the UI for the update operation
 
             // Initialize the progress handler to update progress bar
@@ -206,6 +213,7 @@ namespace PD2Launcherv2
 
             // Trigger the update check and download process
             await UpdateLauncherCheck(_localStorage, progressHandler, onDownloadComplete);
+            Debug.WriteLine("-=-=-=-=-=-= CheckForUpdates() End\n\n\n");
         }
 
         private void ClearNavigationStack()
@@ -599,20 +607,36 @@ namespace PD2Launcherv2
                 onDownloadComplete?.Invoke();
                 return;
             }
-            var fileUpdateModel = _localStorage.LoadSection<FileUpdateModel>(StorageKey.FileUpdateModel);
-            var installPath = Directory.GetCurrentDirectory();
 
-            if (fileUpdateModel == null)
-            {
-                return;
-            }
+#if DEBUG
+            var installPath = AppContext.BaseDirectory;
+#else
+                var installPath = Directory.GetCurrentDirectory();
+#endif
+            Debug.WriteLine($"installPath {installPath}");
+            Debug.WriteLine($"Launcher directory: {AppContext.BaseDirectory}");
+
+            Debug.WriteLine($"Working directory: {Directory.GetCurrentDirectory()}");
+            Debug.WriteLine($"Launcher update directory: {installPath}");
+            Debug.WriteLine($"Running process: {Environment.ProcessPath}");
+
 
             // Initialise it as empty to satisfy dependencies
             var cloudFileItems = new List<CloudFileItem>();
 
             try
             {
-                cloudFileItems = await _fileUpdateHelpers.GetCloudFileMetadataAsync(fileUpdateModel.Launcher);
+                Debug.WriteLine(
+                    $"Launcher metadata URL: " +
+                    $"{PD2Shared.Constants.LauncherUpdate.MetadataUrl}");
+
+                cloudFileItems =
+                    await _fileUpdateHelpers.GetCloudFileMetadataAsync(
+                        PD2Shared.Constants.LauncherUpdate.MetadataUrl);
+
+                Debug.WriteLine(
+                    $"Launcher manifest returned {cloudFileItems.Count} files.");
+
                 if (cloudFileItems == null || cloudFileItems.Count == 0)
                 {
                     onDownloadComplete?.Invoke();
@@ -627,7 +651,7 @@ namespace PD2Launcherv2
                 return;
             }
 
-            var bigFour = new List<string> { "PD2Launcher.exe", "PD2Shared.dll", "SteamPD2.exe", "UpdateUtility.exe" };
+            var bigFour = new List<string> { "PD2Launcher.exe", "SteamPD2.exe", "UpdateUtility.exe" };
             bool big4NeedsUpdate = false;
 
             foreach (var fileName in bigFour)
@@ -666,7 +690,13 @@ namespace PD2Launcherv2
                         bool downloaded = await _fileUpdateHelpers.PrepareLauncherUpdateAsync(cloudItem.MediaLink, localPath, progress);
                         if (!downloaded)
                         {
-                            MessageBox.Show($"Failed to download {cloudItem.Name}.", "Update Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                            MessageBox.Show(
+                                $"Failed to download {cloudItem.Name}.",
+                                "Update Error",
+                                MessageBoxButton.OK,
+                                MessageBoxImage.Error);
+
+                            onDownloadComplete?.Invoke();
                             return;
                         }
                     }
@@ -690,7 +720,13 @@ namespace PD2Launcherv2
                 bool downloaded = await _fileUpdateHelpers.PrepareLauncherUpdateAsync(cloudItem.MediaLink, path, progress);
                 if (!downloaded)
                 {
-                    MessageBox.Show($"Failed to download {fileName}.", "Update Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show(
+                        $"Failed to download {cloudItem.Name}.",
+                        "Update Error",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Error);
+
+                    onDownloadComplete?.Invoke();
                     return;
                 }
             }
@@ -718,13 +754,19 @@ namespace PD2Launcherv2
                 bool downloaded = await _fileUpdateHelpers.PrepareLauncherUpdateAsync(cloudItem.MediaLink, localPath, progress);
                 if (!downloaded)
                 {
-                    MessageBox.Show($"Failed to download {cloudItem.Name}.", "Update Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show(
+                        $"Failed to download {cloudItem.Name}.",
+                        "Update Error",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Error);
+
+                    onDownloadComplete?.Invoke();
                     return;
                 }
             }
 
             // Wait till downloaded and flushed
-            var tempFilesToCheck = new List<string> { "PD2Launcher.exe", "PD2Shared.dll", "SteamPD2.exe" };
+            var tempFilesToCheck = new List<string> { "PD2Launcher.exe", "SteamPD2.exe" };
 
             foreach (var fileName in tempFilesToCheck)
             {

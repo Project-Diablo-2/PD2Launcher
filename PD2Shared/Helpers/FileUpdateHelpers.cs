@@ -24,15 +24,20 @@ namespace PD2Shared.Helpers
 
         public void StartUpdateProcess()
         {
+#if DEBUG
+            string dir = AppContext.BaseDirectory;
+#else
             string dir = Directory.GetCurrentDirectory();
+#endif
+
             string updateUtilityPath = Path.Combine(dir, "UpdateUtility.exe");
+            Debug.WriteLine($"Starting update from directory: {dir}");
+            Debug.WriteLine($"Update utility path: {Path.Combine(dir, "UpdateUtility.exe")}");
 
             string args = string.Join(" ", new[]
             {
                 $"\"{Path.Combine(dir, "PD2Launcher.exe")}\"",
                 $"\"{Path.Combine(dir, "TempPD2Launcher.exe")}\"",
-                $"\"{Path.Combine(dir, "PD2Shared.dll")}\"",
-                $"\"{Path.Combine(dir, "TempPD2Shared.dll")}\"",
                 $"\"{Path.Combine(dir, "SteamPD2.exe")}\"",
                 $"\"{Path.Combine(dir, "TempSteamPD2.exe")}\""
             });
@@ -67,8 +72,6 @@ namespace PD2Shared.Helpers
             {
                 $"\"{Path.Combine(installPath, "PD2Launcher.exe")}\"",
                 $"\"{Path.Combine(installPath, "TempPD2Launcher.exe")}\"",
-                $"\"{Path.Combine(installPath, "PD2Shared.dll")}\"",
-                $"\"{Path.Combine(installPath, "TempPD2Shared.dll")}\"",
                 $"\"{Path.Combine(installPath, "SteamPD2.exe")}\"",
                 $"\"{Path.Combine(installPath, "TempSteamPD2.exe")}\"",
                 $"\"{Path.Combine(installPath, "SteamPD2.exe")}\""
