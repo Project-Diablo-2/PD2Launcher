@@ -609,7 +609,9 @@ namespace PD2Launcherv2
             }
 
 #if DEBUG
-            var installPath = AppContext.BaseDirectory;
+            string installPath = AppContext.BaseDirectory;
+
+            Debug.WriteLine($"Launcher update directory: {installPath}");
 #else
                 var installPath = Directory.GetCurrentDirectory();
 #endif
@@ -629,6 +631,20 @@ namespace PD2Launcherv2
                 Debug.WriteLine(
                     $"Launcher metadata URL: " +
                     $"{PD2Shared.Constants.LauncherUpdate.MetadataUrl}");
+
+                var updateDebugLog =
+    Path.Combine(
+        AppContext.BaseDirectory,
+        "launcher-update-debug.log");
+
+                File.AppendAllText(
+                    updateDebugLog,
+                    $"{DateTime.Now:O}{Environment.NewLine}" +
+                    $"ProcessPath: {Environment.ProcessPath}{Environment.NewLine}" +
+                    $"BaseDirectory: {AppContext.BaseDirectory}{Environment.NewLine}" +
+                    $"WorkingDirectory: {Environment.CurrentDirectory}{Environment.NewLine}" +
+                    $"MetadataUrl: {PD2Shared.Constants.LauncherUpdate.MetadataUrl}{Environment.NewLine}" +
+                    Environment.NewLine);
 
                 cloudFileItems =
                     await _fileUpdateHelpers.GetCloudFileMetadataAsync(
