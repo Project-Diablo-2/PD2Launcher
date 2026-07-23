@@ -224,7 +224,7 @@
                 </StackPanel>
 
                 <!-- Version -->
-                <TextBlock Text="v 2.14.44"
+                <TextBlock Text="v 2.13.99"
                    HorizontalAlignment="Right"
                    Margin="0,0,0,0"
                    Foreground="{StaticResource SoftWhite}"
