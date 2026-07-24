@@ -50,7 +50,9 @@ namespace SteamPD2
                 fileUpdateModel.Client = "https://pd2-client-files.projectdiablo2.com/";
                 localStorage.Update(StorageKey.FileUpdateModel, fileUpdateModel);
             }
-            Log($"Cloud path: {fileUpdateModel?.Launcher}");
+
+            Log( $"Launcher metadata path: " + $"{PD2Shared.Constants.LauncherUpdate.MetadataUrl}");
+
             if (fileUpdateModel == null)
             {
                 Log("FileUpdateModel missing. Exiting.");
@@ -60,7 +62,7 @@ namespace SteamPD2
             List<CloudFileItem> cloudFiles = new();
             try
             {
-                cloudFiles = await fileUpdateHelpers.GetCloudFileMetadataAsync(fileUpdateModel.Launcher);
+                cloudFiles = await fileUpdateHelpers.GetCloudFileMetadataAsync(PD2Shared.Constants.LauncherUpdate.MetadataUrl);
             }
             catch (Exception ex)
             {
@@ -82,7 +84,7 @@ namespace SteamPD2
             }
             try
             {
-                cloudFiles = await fileUpdateHelpers.GetCloudFileMetadataAsync(fileUpdateModel.Launcher);
+                cloudFiles = await fileUpdateHelpers.GetCloudFileMetadataAsync(PD2Shared.Constants.LauncherUpdate.MetadataUrl);
             }
             catch (Exception ex)
             {
@@ -103,7 +105,7 @@ namespace SteamPD2
                 return;
             }
             var installPath = Directory.GetCurrentDirectory();
-            var bigFour = new[] { "PD2Launcher.exe", "PD2Shared.dll", "SteamPD2.exe", "UpdateUtility.exe" };
+            var bigFour = new[] { "PD2Launcher.exe", "SteamPD2.exe", "UpdateUtility.exe" };
             Log("Checking non-Big4 launcher files...");
             foreach (var cloudItem in cloudFiles)
             {

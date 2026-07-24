@@ -71,7 +71,6 @@ namespace PD2Launcherv2.ViewModels
             var fileUpdateModel = new FileUpdateModel
             {
                 Client = "https://pd2-client-files.projectdiablo2.com/",
-                Launcher = "https://storage.googleapis.com/storage/v1/b/pd2-launcher-update/o",
                 FilePath = "Live"
             };
             _localStorage.Update(StorageKey.FileUpdateModel, fileUpdateModel);
@@ -86,7 +85,6 @@ namespace PD2Launcherv2.ViewModels
             var fileUpdateModel = new FileUpdateModel
             {
                 Client = "https://pd2-beta-client-files.projectdiablo2.com/",
-                Launcher = "https://storage.googleapis.com/storage/v1/b/pd2-launcher-update/o",
                 FilePath = "Beta"
             };
             _localStorage.Update(StorageKey.FileUpdateModel, fileUpdateModel);
@@ -115,7 +113,6 @@ namespace PD2Launcherv2.ViewModels
             var fileUpdateModel = new FileUpdateModel
             {
                 Client = CustomClientUrl,
-                Launcher = "https://storage.googleapis.com/storage/v1/b/pd2-launcher-update/o",
                 FilePath = "Custom"
             };
 
