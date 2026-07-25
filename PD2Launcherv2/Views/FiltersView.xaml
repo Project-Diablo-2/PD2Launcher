@@ -7,6 +7,7 @@
       xmlns:converters="clr-namespace:PD2Launcherv2.Converters"
       xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
       Width="750" Height="550"
+      Style="{StaticResource PixelPerfectFrameworkElement}"
       mc:Ignorable="d" 
       Title="FiltersView"
       Loaded="FiltersView_Loaded"

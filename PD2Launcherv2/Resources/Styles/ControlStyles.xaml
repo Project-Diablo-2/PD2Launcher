@@ -64,7 +64,7 @@
     </Style>
 
     <!-- Attempt near pixel-perfect rendering of images, text blocks and everything in-between -->
-    <Style TargetType="Window" x:Key="PixelPerfectWindow">
+    <Style TargetType="FrameworkElement" x:Key="PixelPerfectFrameworkElement">
         <!-- This seems to work when set on the Window level (https://learn.microsoft.com/en-us/dotnet/api/system.windows.uielement.snapstodevicepixels#remarks) -->
         <Setter Property="SnapsToDevicePixels" Value="True"/>
         <!-- ...and this too (https://learn.microsoft.com/en-us/dotnet/api/system.windows.frameworkelement.uselayoutrounding#remarks) -->
