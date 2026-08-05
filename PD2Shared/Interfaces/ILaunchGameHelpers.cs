@@ -1,9 +1,9 @@
-﻿
+﻿using System.Diagnostics;
 
 namespace PD2Shared.Interfaces
 {
     public interface ILaunchGameHelpers
     {
-        void LaunchGame(ILocalStorage storage);
+        Process LaunchGame(ILocalStorage storage, EventHandler? exitedEventHandler = null);
     }
 }

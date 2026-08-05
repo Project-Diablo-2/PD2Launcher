@@ -9,15 +9,22 @@ using PD2Shared.Models;
 using PD2Launcherv2.Views;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Net.Http;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using System.Windows.Media.Imaging;
+using System.Windows.Media;
 using System.Windows.Navigation;
 using System.Windows.Threading;
 using System.IO;
+using PD2Launcherv2.Utils;
+using PD2Launcherv2.Utils.Gl;
+using PD2Shared.GameFileUpdate;
+using PD2Shared.Logging;
+using static PD2Shared.Logging.LoggingStatic;
+using PD2Shared.Utils;
 
 namespace PD2Launcherv2
 {
@@ -26,6 +33,16 @@ namespace PD2Launcherv2
     /// </summary>.
     public partial class MainWindow : Window, INotifyPropertyChanged
     {
+        private enum KeyComboDown
+        {
+            Play,
+
+            Update,
+            Restore,
+            Download,
+            Reset
+        }
+
         public event PropertyChangedEventHandler PropertyChanged;
         private readonly ILocalStorage _localStorage;
         private readonly FileUpdateHelpers _fileUpdateHelpers;
@@ -33,7 +50,45 @@ namespace PD2Launcherv2
         private readonly LaunchGameHelpers _launchGameHelpers;
         private readonly NewsHelpers _newsHelpers;
         private readonly DDrawHelpers _dDrawHelpers;
-        private readonly GameFileUpdateHelpers _gameFileUpdater;
+        private readonly GameFileUpdater _gameFileUpdater;
+
+        private CancellationTokenSource? _currentCts = null;
+        private bool _cancellingAllowed = false;
+        private bool _closePending = false;
+        private bool _closePendingAllowClose = false;
+
+        private bool _isOffline;
+
+        private KeyComboDown _keyComboDown = KeyComboDown.Play;
+
+        private readonly ProgressCookie _progressCookie = new();
+
+        TextBlock? _progressTotalText = null;
+        TextBlock? _progressFileCountText = null;
+        TextBlock? _progressBytesText = null;
+        TextBlock? _progressBytesPerSecText = null;
+        int _progressBytesPrecision;
+
+        private string _playButtonText;
+        private bool _playButtonTextLocked;
+        private bool _progressErrorShown;
+
+        private readonly Brush NormalTextBrush;
+        private readonly Brush ErrorTextBrush;
+
+        private bool _suppressRendererChangedMessages = false;
+
+        // Auto-close
+        private static readonly TimeSpan AutoCloseTimeSpan = TimeSpan.FromSeconds(10);
+
+        private readonly object _autoCloseLock = new();
+        private bool _autoCloseActive = false;
+        private Process? _autoCloseGameProcess = null;
+        private readonly EventWaitHandle _autoCloseThreadInterrupt = new(initialState: false, EventResetMode.ManualReset);
+        private Thread? _autoCloseThread = null;
+        private readonly Stopwatch _autoCloseProgressUpdateStopwatch = new();
+        private DispatcherTimer? _autoCloseProgressUpdateTimer = null;
+
         private bool _isBeta;
         public bool IsBeta
         {
@@ -93,6 +148,65 @@ namespace PD2Launcherv2
             }
         }
 
+        private bool _forceSoftwareRenderer;
+        public bool ForceSoftwareRenderer
+        {
+            get => _forceSoftwareRenderer;
+            set
+            {
+                if (_forceSoftwareRenderer != value)
+                {
+                    _forceSoftwareRenderer = value;
+                    System.Windows.Media.RenderOptions.ProcessRenderMode = _forceSoftwareRenderer ? System.Windows.Interop.RenderMode.SoftwareOnly : System.Windows.Interop.RenderMode.Default;
+                    OnPropertyChanged(nameof(ForceSoftwareRenderer));
+                }
+            }
+        }
+
+        private bool _useHttp2;
+        public bool UseHttp2
+        {
+            get => _useHttp2;
+            set
+            {
+                if (_useHttp2 != value)
+                {
+                    _useHttp2 = value;
+                    OnPropertyChanged(nameof(UseHttp2));
+                }
+            }
+        }
+
+        private bool _isDisableUpdates;
+        public bool IsDisableUpdates
+        {
+            get => _isDisableUpdates;
+            set
+            {
+                if (_isDisableUpdates != value)
+                {
+                    _isDisableUpdates = value;
+                    UpdatesNotificationVisibility = value ? Visibility.Visible : Visibility.Collapsed;
+                    OnPropertyChanged(nameof(IsDisableUpdates));
+                }
+            }
+        }
+
+        private bool _autoCloseAfterLaunch;
+        public bool AutoCloseAfterLaunch
+        {
+            get => _autoCloseAfterLaunch;
+            set
+            {
+                if (_autoCloseAfterLaunch != value)
+                {
+                    _autoCloseAfterLaunch = value;
+                    AutoCloseCheckBox.IsChecked = _autoCloseAfterLaunch;
+                    OnPropertyChanged(nameof(AutoCloseAfterLaunch));
+                }
+            }
+        }
+
         private Visibility _updatesNotificationVisibility = Visibility.Collapsed;
         public Visibility UpdatesNotificationVisibility
         {
@@ -108,7 +222,6 @@ namespace PD2Launcherv2
         }
 
         public List<NewsItem> NewsItems { get; set; }
-        public bool IsDisableUpdates { get; private set; }
         public ICommand OpenOptionsCommand { get; private set; }
         public ICommand OpenLootCommand { get; private set; }
         public ICommand OpenAboutCommand { get; private set; }
@@ -116,6 +229,9 @@ namespace PD2Launcherv2
         public MainWindow()
         {
             InitializeComponent();
+
+            NormalTextBrush = (Brush)FindResource("GoldLighterBrush");
+            ErrorTextBrush = (Brush)FindResource("RedLighterBrush");
 
             OpenOptionsCommand = new RelayCommand(ShowOptionsView);
             OpenLootCommand = new RelayCommand(ShowLootView);
@@ -127,16 +243,24 @@ namespace PD2Launcherv2
             _filterHelpers = (FilterHelpers)App.ServiceProvider.GetService(typeof(FilterHelpers));
             _launchGameHelpers = (LaunchGameHelpers)App.ServiceProvider.GetService(typeof(LaunchGameHelpers));
             _newsHelpers = (NewsHelpers)App.ServiceProvider.GetService(typeof(NewsHelpers));
-            _gameFileUpdater = (GameFileUpdateHelpers)App.ServiceProvider.GetService(typeof(GameFileUpdateHelpers));
+            _gameFileUpdater = (GameFileUpdater)App.ServiceProvider.GetService(typeof(GameFileUpdater));
             LoadAndUpdateDDrawOptions();
-            InitWindow();
-            EnsureWindowIsVisible();
             Loaded += MainWindow_Loaded;
             LoadConfiguration();
+            LoadOptions();
+
+            CheckGlCtxAndPrompt(
+                // <!> This property is incredibly ambiguous
+                usesD2gl: _localStorage.LoadSection<LauncherArgs>(StorageKey.LauncherArgs).graphics == false,
+                // <!> This is quite horrible and should be made into an enum
+                cncDdrawUsesOgl: _localStorage.LoadSection<DdrawOptions>(StorageKey.DdrawOptions).Renderer == "opengl"
+            );
 
             // Registering to receive NavigationMessage
             Messenger.Default.Register<NavigationMessage>(this, OnNavigationMessageReceived);
             Messenger.Default.Register<ConfigurationChangeMessage>(this, OnConfigurationChanged);
+            Messenger.Default.Register<LauncherOptionsChangeMessage>(this, OnLauncherOptionsChanged);
+            Messenger.Default.Register<RendererChangeMessage>(this, OnRendererChanged);
             DataContext = this;
 
             this.Closed += MainWindow_Closed;
@@ -155,6 +279,24 @@ namespace PD2Launcherv2
                 _localStorage.Update(StorageKey.FileUpdateModel, storeUpdate);
             }
 
+            this.Title = MsgBox.DefaultDialogTitle;
+            this.VersionText.Text = PD2Shared.Constants.VersionString;
+            UseFileCountProgressMapping();
+            ResetUI();
+            ToggleOffline(show: false);
+
+            if (Wine.IsRunningUnderWine)
+            {
+                WineLogo16Image.ToolTip = Wine.Version != null ? $"Wine {Wine.Version} detected" : "Undetermined Wine version";
+            }
+            else
+            {
+                WineLogo16Image.Visibility = Visibility.Hidden;
+            }
+
+            // Auto-close
+            AutoCloseResetProgress();
+            InputManager.Current.PostProcessInput += AutoClosePostProcessInput;
 
             // Don't try to update launcher in debug mode
             // TEST
@@ -165,6 +307,7 @@ namespace PD2Launcherv2
                 CheckForUpdates();
 #endif
         }
+
         private void OnNavigationMessageReceived(NavigationMessage message)
         {
             Overlay.Visibility = Visibility.Collapsed;
@@ -200,7 +343,7 @@ namespace PD2Launcherv2
             {
                 Dispatcher.Invoke(() =>
                 {
-                    DownloadProgressBar.Value = value * 100;
+                    DownloadProgressBar.Value = value * DownloadProgressBar.Maximum;
                     if (DownloadProgressBar.Visibility != Visibility.Visible)
                     {
                         DownloadProgressBar.Visibility = Visibility.Visible;
@@ -235,43 +378,282 @@ namespace PD2Launcherv2
         private async void PlayButton_Click(object sender, RoutedEventArgs e)
         {
             Debug.WriteLine("PlayButton_Click start");
+
+            L.Separator();
+            L.CallerInformation($"Clicked on '{PlayButton.Text}'");
+
+            // Store this early on to allow releasing the keys immediately upon clicking the button
+            KeyComboDown keyComboDown = _keyComboDown;
+
+            if (keyComboDown == KeyComboDown.Play)
+            {
+                if (LaunchGameHelpers.IsGameRunning)
+                {
+                    L.CallerWarning("Attempted to start the game while another instance is already running.");
+
+                    MsgBox.Warn("Another instance of the game is already running.");
+                    return;
+                }
+            }
+
+            UpdateMode updateMode;
+            bool noFilterUpdate;
+            bool noLaunch;
+
+            switch (keyComboDown)
+            {
+                case KeyComboDown.Play:
+                    updateMode = UpdateMode.Normal;
+                    noFilterUpdate = false;
+                    noLaunch = false;
+                    break;
+
+                case KeyComboDown.Update:
+                    updateMode = UpdateMode.Normal;
+                    noFilterUpdate = false;
+                    noLaunch = true;
+                    break;
+
+                case KeyComboDown.Restore:
+                    updateMode = UpdateMode.Restore;
+                    noFilterUpdate = true;
+                    noLaunch = true;
+                    break;
+
+                case KeyComboDown.Download:
+                    updateMode = UpdateMode.Download;
+                    noFilterUpdate = true;
+                    noLaunch = true;
+                    break;
+
+                case KeyComboDown.Reset:
+                    updateMode = UpdateMode.Reset;
+                    noFilterUpdate = true;
+                    noLaunch = true;
+                    break;
+
+                // <!> Only switch expressions can benefit from "exhaustive switch"
+                default:
+                    throw new InvalidEnumArgumentException();
+            }
+
             UpdateUIForOperationStart();
 
             try
             {
-                if (Process.GetProcessesByName("Game").Any())
+                bool proceed = false;
+
                 {
-                    MessageBox.Show("Game is already running.");
+                    Exception? caughtEx = null;
+                    bool workOffline = IsDisableUpdates && !noLaunch;
+
+                    using (_currentCts = new CancellationTokenSource())
+                    {
+                        try
+                        {
+                            CancelButton.IsEnabled = true;
+                            CancelButton.Visibility = Visibility.Visible;
+                            _cancellingAllowed = true;
+
+                            L.Separator();
+
+                            await _gameFileUpdater.UpdateAsync(
+                                workOffline,
+                                updateMode,
+                                UseHttp2,
+                                _localStorage.LoadSection<FileUpdateModel>(StorageKey.FileUpdateModel),
+                                new ProgressWithCookie<ProgressValues.IData>(_progressCookie, UpdateProgressValues),
+                                new ProgressWithCookie<string>(_progressCookie, UpdatePlayButtonText),
+                                new ProgressWithCookie<bool>(_progressCookie, ToggleOffline),
+                                new ProgressWithCookie<bool>(_progressCookie, ToggleProgressErrorIndicator),
+                                _currentCts.Token);
+                        }
+                        catch (OperationCanceledException ex) when (ex.CancellationToken == _currentCts.Token)
+                        {
+                            // A user-requested cancellation -- just bail
+                            L.CallerWarning("Canceled.");
+                            return;
+                        }
+                        catch (DownloadException ex)
+                        {
+                            // These contain AggregateException and are vile to log
+                            // Since all contained inner exceptions must have been logged already -- don't log them here
+                            L.CallerError($"{nameof(DownloadException)} caught: '{ex.Message}'");
+
+                            caughtEx = ex;
+                        }
+                        catch (FatalGameFileUpdateException ex)
+                        {
+                            // These will be handled below
+                            L.CallerError($"{nameof(FatalGameFileUpdateException)} caught: '{ex.Message}'");
+
+                            caughtEx = ex;
+                        }
+                        catch (Exception ex)
+                        {
+                            L.CallerError(ex, $"{nameof(GameFileUpdater.UpdateAsync)}() threw");
+
+                            caughtEx = ex;
+                        }
+                        finally
+                        {
+                            _cancellingAllowed = false;
+                            CancelButton.Visibility = Visibility.Hidden;
+
+                            _currentCts = null;
+
+                            if (_closePending)
+                            {
+                                _closePendingAllowClose = true;
+                                this.Close();
+                            }
+                        }
+                    }
+
+                    if (caughtEx == null)
+                    {
+                        proceed = true;
+                    }
+                    else
+                    {
+                        void HandleFatalGameFileUpdateException(string cause, string effect)
+                        {
+                            const string ActionMsg = "\nRefusing to launch the game.";
+                            const string OfflineActionMsg = "\nAttempt to launch the game anyway?";
+
+                            if (noLaunch)
+                            {
+                                MsgBox.Exception(
+                                    caughtEx.InnerException,
+                                    cause);
+                            }
+                            else
+                            {
+                                if (!workOffline)
+                                {
+                                    MsgBox.Exception(
+                                        caughtEx.InnerException,
+                                        string.Join('\n', cause, effect, ActionMsg));
+                                }
+                                else
+                                {
+                                    if (MsgBox.Exception(
+                                            caughtEx.InnerException,
+                                            string.Join('\n', cause, effect, OfflineActionMsg),
+                                            MessageBoxImage.Warning,
+                                            MessageBoxButton.YesNo,
+                                            MessageBoxResult.No) == MessageBoxResult.Yes)
+                                    {
+                                        proceed = true;
+                                    }
+                                }
+                            }
+                        }
+
+                        if (caughtEx is OfflineInvalidManifest)
+                        {
+                            HandleFatalGameFileUpdateException(
+                                cause: updateMode == UpdateMode.Reset ?
+                                    // Manifest gets cleared during Reset
+                                    "Failed to retrieve metadata." :
+                                    "Failed to retrieve metadata and there is no local manifest to work with.",
+                                effect: "Game files could not be validated and the integrity of the game cannot be guaranteed."
+                            );
+                        }
+                        else if (caughtEx is InvalidMetadataRetrieved)
+                        {
+                            HandleFatalGameFileUpdateException(
+                                cause: "Retrieved metadata is invalid.",
+                                effect: "Game files could not be validated and the integrity of the game cannot be guaranteed."
+                            );
+                        }
+                        else if (caughtEx is OfflineNeedsDownload)
+                        {
+                            HandleFatalGameFileUpdateException(
+                                cause: "Game files failed validation and cannot be re-downloaded.",
+                                effect: "The integrity of the game cannot be guaranteed."
+                            );
+                        }
+                        else
+                        {
+                            // <!> Is this still needed?
+                            if (caughtEx is HttpRequestException)
+                            {
+                                ToggleOffline(show: true);
+                            }
+
+                            MsgBox.Exception(caughtEx);
+                        }
+                    }
+                }
+
+                if (!proceed)
+                {
                     return;
                 }
 
-                var selectedAuthorAndFilter = _localStorage.LoadSection<SelectedAuthorAndFilter>(StorageKey.SelectedAuthorAndFilter);
-                if (selectedAuthorAndFilter?.selectedFilter != null)
+                // Clear progress indicator at this point
+                UpdateProgressValues(new ProgressValues().Clear().Extract());
+
+                if (!noFilterUpdate)
                 {
-                    bool isUpdated = await _filterHelpers.CheckAndUpdateFilterAsync(selectedAuthorAndFilter);
+                    // Make this step obey IsDisableUpdates and also bail in case of _isOffline not to produce more errors
+                    if (!IsDisableUpdates && !_isOffline)
+                    {
+                        var selectedAuthorAndFilter = _localStorage.LoadSection<SelectedAuthorAndFilter>(StorageKey.SelectedAuthorAndFilter);
+                        if (selectedAuthorAndFilter?.selectedFilter != null)
+                        {
+                            UpdatePlayButtonText("Updating filter...");
+
+                            try
+                            {
+                                await _filterHelpers.CheckAndUpdateFilterAsync(selectedAuthorAndFilter);
+                            }
+                            catch (Exception ex)
+                            {
+                                L.CallerError(ex, $"{nameof(FilterHelpers.CheckAndUpdateFilterAsync)}() threw");
+                                MsgBox.Exception(ex, "Failed to update the filter:");
+
+                                return;
+                            }
+                        }
+                    }
                 }
 
-                LauncherArgs launcherArgs = _localStorage.LoadSection<LauncherArgs>(StorageKey.LauncherArgs);
-                if (!launcherArgs.disableAutoUpdate)
+                if (noLaunch)
                 {
+                    return;
+                }
+
+                {
+                    UpdatePlayButtonText("Launching...");
+
+                    bool useAutoClose = AutoCloseAfterLaunch;
+                    Process gameProcess;
+
                     try
                     {
-                        await _gameFileUpdater.UpdateFromShaMetadataAsync(_localStorage, new Progress<double>(UpdateProgress), () => { });
-                        Debug.WriteLine("made it out of the update check");
-                        await _fileUpdateHelpers.SyncFilesFromEnvToRoot(_localStorage);
+                        gameProcess = _launchGameHelpers.LaunchGame(_localStorage, useAutoClose ? AutoCloseGameProcessExited : null);
                     }
-                    catch (HttpRequestException ex)
+                    catch (Exception ex)
                     {
-                        Debug.WriteLine($"Update failed: {ex.Message}. Proceeding in offline mode.");
-                        MessageBox.Show("Could not check for updates. Proceeding in offline mode.", "Offline Mode", MessageBoxButton.OK, MessageBoxImage.Information);
+                        L.CallerError(ex, $"{nameof(_launchGameHelpers.LaunchGame)}() threw");
+                        MsgBox.Exception(ex, "Failed to launch the game:");
+
+                        return;
                     }
+
+                    if (useAutoClose)
+                    {
+                        AutoCloseBegin(gameProcess);
+                    }
+                    else
+                    {
+                        gameProcess.Dispose();
+                    }
+
+                    await Task.Delay(TimeSpan.FromSeconds(1.5));
                 }
-                _launchGameHelpers.LaunchGame(_localStorage);
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Exception occurred during PlayButton_Click: {ex.Message}");
-                ShowErrorMessage($"An error occurred: {ex.Message}");
             }
             finally
             {
@@ -281,45 +663,310 @@ namespace PD2Launcherv2
             }
         }
 
+        private bool Cancel()
+        {
+            if (!_cancellingAllowed)
+            {
+                return false;
+            }
+
+            _cancellingAllowed = false;
+            CancelButton.IsEnabled = false;
+
+            L.CallerWarning("Cancellation requested!");
+            _currentCts!.Cancel(throwOnFirstException: true);
+
+            return true;
+        }
+
+        private void CancelButton_Click(object sender, RoutedEventArgs e)
+        {
+            Cancel();
+        }
+
+        private void Window_Closing(object sender, CancelEventArgs e)
+        {
+            if (_closePending)
+            {
+                e.Cancel = !_closePendingAllowClose;
+                return;
+            }
+
+            if (this.Cancel())
+            {
+                e.Cancel = true;
+
+                _closePending = true;
+            }
+
+            if (AutoCloseAbort())
+            {
+                L.CallerDebug($"Auto-close aborted due to window closing.");
+            }
+        }
+
+        private void CheckKeys(KeyboardDevice kd)
+        {
+            _keyComboDown = kd.Modifiers switch
+            {
+                // Pressing Alt+Space will pop up system menu. Similarly, pressing Alt alone can focus it (even with WindowStyle.None).
+                // Therefore, handling Alt alone isn't great (without disabling system menu first, but that's too invasive).
+
+                ModifierKeys.Control | ModifierKeys.Shift | ModifierKeys.Alt => KeyComboDown.Reset,
+                ModifierKeys.Control | ModifierKeys.Shift => KeyComboDown.Download,
+                ModifierKeys.Shift => KeyComboDown.Restore,
+                ModifierKeys.Control => KeyComboDown.Update,
+                _ => KeyComboDown.Play,
+            };
+        }
+
+        private void Window_KeyDown(object sender, KeyEventArgs e)
+        {
+            CheckKeys(e.KeyboardDevice);
+            RefreshPlayButtonText();
+        }
+
+        private void Window_KeyUp(object sender, KeyEventArgs e)
+        {
+            CheckKeys(e.KeyboardDevice);
+            RefreshPlayButtonText();
+        }
+
+        private void Window_IsKeyboardFocusWithinChanged(object sender, DependencyPropertyChangedEventArgs e)
+        {
+            if (!IsKeyboardFocusWithin)
+            {
+                _keyComboDown = KeyComboDown.Play;
+            }
+
+            RefreshPlayButtonText();
+        }
+
+        private void Window_Activated(object sender, EventArgs e)
+        {
+            if (AutoCloseAbort())
+            {
+                L.CallerDebug($"Auto-close aborted due to window activation.");
+            }
+
+            // Attempt to refocus when closing a modal dialog to get keyboard focus back
+            if (!this.IsKeyboardFocusWithin)
+            {
+                this.Focus();
+            }
+        }
+
         private void UpdateUIForOperationStart()
         {
-            try
-            {
-                var updatingImageUri = new Uri("pack://application:,,,/Resources/Images/updating_disabled.jpg");
-                PlayButton.NormalImageSource = new BitmapImage(updatingImageUri);
-                DownloadProgressBar.Visibility = Visibility.Visible;
-                DownloadProgressBar.Value = 0;
-            }
-            catch (UriFormatException ex)
-            {
-                Debug.WriteLine($"URI format exception: {ex.Message}");
-            }
+            Mouse.OverrideCursor = Cursors.AppStarting;
+
+            _playButtonTextLocked = true;
+            UpdatePlayButtonText("Updating...");
+            PlayButton.IsEnabled = false;
+
+            UpdateProgressValues(new ProgressValues().Clear().Extract());
+            DownloadProgressBar.Visibility = Visibility.Visible;
+            AboutButton.IsEnabled = false;
+            OptionsButton.IsEnabled = false;
+            LootButton.IsEnabled = false;
         }
 
+        [MemberNotNull(nameof(_playButtonText))]
         private void ResetUI()
         {
-            // Code to reset the Play button and hide the progress bar
-            Dispatcher.Invoke(() =>
-            {
-                try
-                {
-                    var playImageUri = new Uri("pack://application:,,,/Resources/Images/play.jpg");
-                    PlayButton.NormalImageSource = new BitmapImage(playImageUri);
-                }
-                catch (UriFormatException ex)
-                {
-                    Debug.WriteLine($"URI format exception: {ex.Message}");
-                }
-                DownloadProgressBar.Visibility = Visibility.Hidden;
-            });
+            _progressCookie.Advance();
+
+            LootButton.IsEnabled = true;
+            OptionsButton.IsEnabled = true;
+            AboutButton.IsEnabled = true;
+            CancelButton.Visibility = Visibility.Hidden;
+            CancelButton.IsEnabled = true;
+            DownloadProgressBar.Visibility = Visibility.Hidden;
+            UpdateProgressValues(new ProgressValues().Clear().Extract());
+            ToggleProgressErrorIndicator(false);
+
+            PlayButton.IsEnabled = true;
+            _playButtonTextLocked = false;
+            UpdatePlayButtonText("Play");
+
+            Mouse.OverrideCursor = null;
         }
 
-        private void UpdateProgress(double value)
+        private void UseFileCountProgressMapping()
         {
-            Dispatcher.Invoke(() =>
+            UpdateProgressValues(new ProgressValues().Clear().Extract());
+            _progressBytesPrecision = 2;
+
+            _progressTotalText = null;
+            _progressFileCountText = ProgressLargeText;
+            _progressBytesText = ProgressSmallText1;
+            _progressBytesPerSecText = ProgressSmallText2;
+        }
+
+        private void UseTotalProgressMapping()
+        {
+            UpdateProgressValues(new ProgressValues().Clear().Extract());
+            _progressBytesPrecision = 0;
+
+            _progressTotalText = ProgressLargeText;
+            _progressFileCountText = ProgressSmallText2;
+            _progressBytesText = ProgressSmallText1;
+            _progressBytesPerSecText = null;
+        }
+
+        private void UpdateProgressValues(ProgressValues.IData progressData)
+        {
+            if (progressData.TotalSet) UpdateTotalProgress(progressData.Total);
+            if (progressData.FileCountSet) UpdateFileCountProgress(progressData.FileCount);
+            if (progressData.BytesSet) UpdateBytesProgress(progressData.Bytes);
+            if (progressData.BytesPerSecSet) UpdateBytesPerSecProgress(progressData.BytesPerSec);
+        }
+
+        private void UpdateTotalProgress(double? progress)
+        {
+            if (progress == null)
             {
-                DownloadProgressBar.Value = value * 100;
-            });
+                DownloadProgressBar.Value = 0;
+            }
+            else
+            {
+                DownloadProgressBar.Value = progress.Value * DownloadProgressBar.Maximum;
+            }
+
+            if (_progressTotalText == null)
+            {
+                return;
+            }
+
+            if (progress == null)
+            {
+                _progressTotalText.Visibility = Visibility.Hidden;
+            }
+            else
+            {
+                _progressTotalText.Text = $"{progress * 100:N1}%";
+                _progressTotalText.Visibility = Visibility.Visible;
+            }
+        }
+
+        private void UpdateFileCountProgress(ProgressValues.FileCountProgress? progress)
+        {
+            if (_progressFileCountText == null)
+            {
+                return;
+            }
+
+            if (progress == null)
+            {
+                _progressFileCountText.Visibility = Visibility.Hidden;
+                return;
+            }
+
+            _progressFileCountText.Text = $"{progress.Current:N0}/{progress.Total:N0}";
+            _progressFileCountText.Visibility = Visibility.Visible;
+        }
+
+        private void UpdateBytesProgress(ProgressValues.BytesProgress? progress)
+        {
+            if (_progressBytesText == null)
+            {
+                return;
+            }
+
+            if (progress == null)
+            {
+                _progressBytesText.Visibility = Visibility.Hidden;
+                return;
+            }
+
+            var currentStr = Formatting.FormatSizeInMiB(progress.Current, appendUnits: progress.Total == null, _progressBytesPrecision);
+            var slashStr = progress.Total == null ? "" : "/";
+            var totalStr = progress.Total == null ? "" : Formatting.FormatSizeInMiB(progress.Total.Value, appendUnits: true, _progressBytesPrecision);
+
+            _progressBytesText.Text = $"{currentStr}{slashStr}{totalStr}";
+            _progressBytesText.Visibility = Visibility.Visible;
+        }
+
+        private void UpdateBytesPerSecProgress(ProgressValues.BytesPerSecProgress? progress)
+        {
+            if (_progressBytesPerSecText == null)
+            {
+                return;
+            }
+
+            if (progress == null)
+            {
+                _progressBytesPerSecText.Visibility = Visibility.Hidden;
+                return;
+            }
+
+            _progressBytesPerSecText.Text = $"({Formatting.FormatThroughputInMiB(progress.Bytes, progress.ElapsedMilliseconds)})";
+            _progressBytesPerSecText.Visibility = Visibility.Visible;
+        }
+
+        [MemberNotNull(nameof(_playButtonText))]
+        private void UpdatePlayButtonText(string text)
+        {
+            _playButtonText = text;
+
+            RefreshPlayButtonText();
+        }
+
+        private void ToggleOffline(bool show)
+        {
+            _isOffline = show;
+
+            OfflineIndicatorImage.Visibility = _isOffline ? Visibility.Visible : Visibility.Hidden;
+        }
+
+        private static string GetTextForKeyComboDown(KeyComboDown keyComboDown)
+        {
+            switch (keyComboDown)
+            {
+                case KeyComboDown.Play:
+                    return null!;
+
+                case KeyComboDown.Update:
+                    return "Update";
+                case KeyComboDown.Restore:
+                    return "Restore";
+                case KeyComboDown.Download:
+                    return "Download";
+                case KeyComboDown.Reset:
+                    return "Reset";
+
+                // <!> Only switch expressions can benefit from "exhaustive switch"
+                default:
+                    throw new InvalidEnumArgumentException();
+            }
+        }
+
+        private void RefreshPlayButtonText()
+        {
+            if (_playButtonTextLocked)
+            {
+                PlayButton.Text = _playButtonText;
+            }
+            else
+            {
+                PlayButton.Text = GetTextForKeyComboDown(_keyComboDown) ?? _playButtonText;
+            }
+        }
+
+        private void ToggleProgressErrorIndicator(bool show)
+        {
+            if (_progressErrorShown == show)
+            {
+                return;
+            }
+
+            _progressErrorShown = show;
+
+            var brush = show ? ErrorTextBrush : NormalTextBrush;
+
+            ProgressLargeText.Foreground = brush;
+            ProgressSmallText1.Foreground = brush;
+            ProgressSmallText2.Foreground = brush;
         }
 
         private void onDownloadComplete()
@@ -342,7 +989,20 @@ namespace PD2Launcherv2
         {
             ClearNavigationStack();
             Overlay.Visibility = Visibility.Visible;
-            MainFrame.Navigate(new OptionsView());
+
+            try
+            {
+                // <!> This is a nasty workaround for OptionsViewModel's excessive and reentrant event firing during initialization
+                //     caused by not differentiating between properties being set programmatically and interactively.
+                _suppressRendererChangedMessages = true;
+
+                MainFrame.Navigate(new OptionsView());
+                MainFrame.Focus();
+            }
+            finally
+            {
+                _suppressRendererChangedMessages = false;
+            }
         }
 
         private void ShowLootView()
@@ -350,6 +1010,7 @@ namespace PD2Launcherv2
             ClearNavigationStack();
             Overlay.Visibility = Visibility.Visible;
             MainFrame.Navigate(new FiltersView());
+            MainFrame.Focus();
         }
 
         private void ShowAboutView()
@@ -357,6 +1018,7 @@ namespace PD2Launcherv2
             ClearNavigationStack();
             Overlay.Visibility = Visibility.Visible;
             MainFrame.Navigate(new AboutView());
+            MainFrame.Focus();
         }
 
         private void Hyperlink_RequestNavigate(object sender, RequestNavigateEventArgs e)
@@ -382,7 +1044,6 @@ namespace PD2Launcherv2
 
         private void CloseButton_Click(object sender, RoutedEventArgs e)
         {
-            MainWindow_Closed(sender, e);
             this.Close();
         }
 
@@ -402,13 +1063,18 @@ namespace PD2Launcherv2
         private void LoadConfiguration()
         {
             var fileUpdateModel = _localStorage.LoadSection<FileUpdateModel>(StorageKey.FileUpdateModel);
-            var launcherArgs = _localStorage.LoadSection<LauncherArgs>(StorageKey.LauncherArgs);
             IsBeta = fileUpdateModel?.FilePath == "Beta";
             IsCustom = fileUpdateModel?.FilePath == "Custom";
-            IsDisableUpdates = launcherArgs?.disableAutoUpdate == true;
+        }
 
-            // Use property to control visibility
-            UpdatesNotificationVisibility = IsDisableUpdates ? Visibility.Visible : Visibility.Collapsed;
+        private void LoadOptions()
+        {
+            LauncherOptions launcherOptions = _localStorage.LoadSection<LauncherOptions>(StorageKey.LauncherOptions);
+
+            ForceSoftwareRenderer = launcherOptions.ForceSoftwareRenderer;
+            UseHttp2 = launcherOptions.UseHttp2;
+            IsDisableUpdates = launcherOptions.DisableAutoUpdate;
+            AutoCloseAfterLaunch = launcherOptions.AutoCloseAfterLaunch;
         }
 
         private void OnConfigurationChanged(ConfigurationChangeMessage message)
@@ -417,12 +1083,79 @@ namespace PD2Launcherv2
             OnPropertyChanged(nameof(IsBeta));
             IsCustom = message.IsCustom;
             OnPropertyChanged(nameof(IsCustom));
-            // Use property to control visibility
-            UpdatesNotificationVisibility = message.IsDisableUpdates ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        private void OnLauncherOptionsChanged(LauncherOptionsChangeMessage message)
+        {
+            ForceSoftwareRenderer = message.ForceSoftwareRenderer;
+            OnPropertyChanged(nameof(ForceSoftwareRenderer));
+            UseHttp2 = message.UseHttp2;
+            OnPropertyChanged(nameof(UseHttp2));
+            IsDisableUpdates = message.DisableAutoUpdate;
+            OnPropertyChanged(nameof(IsDisableUpdates));
+        }
+
+        private void OnRendererChanged(RendererChangeMessage message)
+        {
+            if (_suppressRendererChangedMessages)
+            {
+                return;
+            }
+
+            CheckGlCtxAndPrompt(message.UseD2GL, message.CncDdrawUsesOGL);
+        }
+
+        private static void CheckGlCtxAndPrompt(bool usesD2gl, bool cncDdrawUsesOgl)
+        {
+            if (!usesD2gl && !cncDdrawUsesOgl)
+            {
+                return;
+            }
+
+            if (usesD2gl)
+            {
+                if (GlTest.BestCtx.GlCtxInfo == null && GlTest.BestCtx.StageReached.IndicatesGlFailure())
+                {
+                    MsgBox.Exception(
+                        GlTest.BestCtx.Exception,
+                        "Selected 3dfx (D2GL) renderer wrapper might not work:",
+                        MessageBoxImage.Warning
+                    );
+                }
+                else if(GlTest.BestCtx.GlCtxInfo != null)
+                {
+                    // D2GL requires a 3.3 context at minimum. Might as well crash with Access Violation otherwise.
+                    // It effectively asks for 3.3 Core profile, but any 3.3+ should be fine.
+                    if (GlTest.BestCtx.GlCtxInfo.Version < new Version(3, 3))
+                    {
+                        MsgBox.Warn(
+                            "Selected 3dfx (D2GL) renderer wrapper might not work.\n" +
+                            "D2GL requires at least a 3.3 context.\n" +
+                            "\n" +
+                            "Best GL context created:\n" +
+                            "\n" +
+                            GlTest.BestCtx.GlCtxInfo.ToString()
+                        );
+                    }
+                }
+            }
+            else
+            {
+                if (GlTest.BestCtx.GlCtxInfo == null && GlTest.BestCtx.StageReached.IndicatesGlFailure())
+                {
+                    MsgBox.Exception(
+                        GlTest.BestCtx.Exception,
+                        "Selected DDraw (cnc-ddraw) renderer wrapper (set to OpenGL renderer) might not work:",
+                        MessageBoxImage.Warning
+                    );
+                }
+            }
         }
 
         private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
+            RestoreWindowPosition();
+
             await InitializeAsync();
         }
 
@@ -496,11 +1229,22 @@ namespace PD2Launcherv2
             Debug.WriteLine($"\n\n Saving window position: Left = {this.Left}, Top = {this.Top} \n\n");
 
             _localStorage.Update(StorageKey.WindowPosition, windowPosition);
+
+            // <!> Usage of these local values instead of LocalStorage directly might lead to discrepancy
+            _localStorage.Update(StorageKey.LauncherOptions, new LauncherOptions
+            {
+                ForceSoftwareRenderer = this.ForceSoftwareRenderer,
+                UseHttp2 = this.UseHttp2,
+                DisableAutoUpdate = this.IsDisableUpdates,
+                AutoCloseAfterLaunch = this.AutoCloseAfterLaunch
+            });
         }
 
-        private void EnsureWindowIsVisible()
+        private void RestoreWindowPosition()
         {
-            var windowPosition = _localStorage.LoadSection<WindowPositionModel>(StorageKey.WindowPosition);
+            WindowPositionModel windowPosition = _localStorage.LoadSection<WindowPositionModel>(StorageKey.WindowPosition);
+
+            Debug.WriteLine($"\n\n Loaded window position: Left = {windowPosition.Left}, Top = {windowPosition.Top} \n\n");
 
             // Check if the window is out of bounds
             bool isOutOfBounds =
@@ -509,25 +1253,7 @@ namespace PD2Launcherv2
                 windowPosition.Left > SystemParameters.VirtualScreenLeft + SystemParameters.VirtualScreenWidth ||
                 windowPosition.Top > SystemParameters.VirtualScreenTop + SystemParameters.VirtualScreenHeight;
 
-            if (windowPosition == null || isOutOfBounds)
-            {
-                CenterWindowOnScreen();
-            }
-            else
-            {
-                // Restore the window to its last saved position
-                this.Left = windowPosition.Left;
-                this.Top = windowPosition.Top;
-            }
-        }
-
-        private void InitWindow()
-        {
-            var windowPosition = _localStorage.LoadSection<WindowPositionModel>(StorageKey.WindowPosition);
-
-            Debug.WriteLine($"\n\n Loaded window position: Left = {windowPosition?.Left}, Top = {windowPosition?.Top} \n\n");
-
-            if (windowPosition == null || (windowPosition.Left == 0 && windowPosition.Top == 0))
+            if (windowPosition == null || isOutOfBounds || (windowPosition.Left == 0 && windowPosition.Top == 0))
             {
                 CenterWindowOnScreen();
             }
@@ -545,9 +1271,70 @@ namespace PD2Launcherv2
 
         public void InitializeDefaultSettings(ILocalStorage localStorage)
         {
+            // <!> Since LauncherOptions has been recently added, expect existing config files (aka LocalStorage)
+            //     to be missing that section. Since the whole LocalStorage implementation is a bit sketchy and the below
+            //     initialization doesn't even work -- perform only this specific manual step for now.
+            //
+            //     Keep in mind that LocalStorage.Update() will still rotate and rewrite the entire file. *sigh*
+            if (_localStorage.LoadSectionIfExists<LauncherOptions>(StorageKey.LauncherOptions) == null)
+            {
+                bool localStorageUpdated = false;
+
+                if (Wine.IsRunningUnderWine)
+                {
+                    if (MsgBox.Info(
+                        "It appears to be the first time the launcher has been run.\n" +
+                        "Additionally, it's running under Wine.\n" +
+                        "\n" +
+                        "Would you like to set up launcher options for maximum Wine compatibility?\n" +
+                        "(This can be re-adjusted in the Options menu at any time).",
+                        MessageBoxButton.YesNo,
+                        MessageBoxResult.Yes) == MessageBoxResult.Yes)
+                    {
+                        localStorage.Update<LauncherOptions>(StorageKey.LauncherOptions, new LauncherOptions()
+                        {
+                            ForceSoftwareRenderer = true,
+                            // HTTP/2 performance in Wine is currently subpar
+                            UseHttp2 = false
+                        });
+
+                        localStorageUpdated = true;
+                    }
+
+                    if (MsgBox.Info(
+                        "Would you like to apply PD2-specific Wine configuration?\n" +
+                        "(This can be re-adjusted in the Options menu at any time).",
+                        MessageBoxButton.YesNo,
+                        MessageBoxResult.Yes) == MessageBoxResult.Yes)
+                    {
+                        try
+                        {
+                            Wine.ApplyWineConfiguration();
+                        }
+                        catch (Wine.WineException ex)
+                        {
+                            L.CallerError(ex.InnerException, ex.Message);
+                            MsgBox.Exception(ex, "Failed to apply Wine configuration:");
+                        }
+                        catch (Exception ex)
+                        {
+                            L.CallerError(ex, "Failed to apply Wine configuration.");
+                            MsgBox.Exception(ex, "Failed to apply Wine configuration:");
+                        }
+                    }
+                }
+
+                if (!localStorageUpdated)
+                {
+                    localStorage.Update<LauncherOptions>(StorageKey.LauncherOptions, new LauncherOptions());
+                }
+            }
+
+            // <!> None of the below logic works as expected
             _localStorage.InitializeIfNotExists(StorageKey.FileUpdateModel, new FileUpdateModel());
             _localStorage.InitializeIfNotExists(StorageKey.DdrawOptions, new DdrawOptions());
             _localStorage.InitializeIfNotExists(StorageKey.LauncherArgs, new LauncherArgs());
+            _localStorage.InitializeIfNotExists(StorageKey.LauncherOptions, new LauncherOptions());
             _localStorage.InitializeIfNotExists(StorageKey.SelectedAuthorAndFilter, new SelectedAuthorAndFilter());
             _localStorage.InitializeIfNotExists(StorageKey.Pd2AuthorList, new Pd2AuthorList());
             _localStorage.InitializeIfNotExists(StorageKey.News, new News());
@@ -662,7 +1449,8 @@ namespace PD2Launcherv2
             catch (Exception ex)
             {
                 Debug.WriteLine($"Unhandled exception: {ex}");
-                UpdatesNotificationVisibility = Visibility.Visible;
+
+                ToggleOffline(show: true);
                 onDownloadComplete?.Invoke();
                 return;
             }
@@ -825,6 +1613,174 @@ namespace PD2Launcherv2
             };
 
             topmostWindow.Show();
+        }
+
+        private async void GoToLogButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                await Shell.OpenFolderAndSelectItemsAsync(Logging.LogDirPath, Logging.LogFileName);
+            }
+            catch (Exception ex)
+            {
+                L.CallerWarning(ex, $"{nameof(Shell.OpenFolderAndSelectItemsAsync)}() threw");
+                MsgBox.Exception(ex, "Failed to navigate to the log file:", MessageBoxImage.Warning);
+            }
+        }
+
+        private void AutoCloseBegin(Process gameProcess)
+        {
+            lock (_autoCloseLock)
+            {
+                if (_autoCloseActive)
+                {
+                    return;
+                }
+
+                if (gameProcess.HasExited)
+                {
+                    // If the process has already terminated -- bail
+                    return;
+                }
+
+                _autoCloseGameProcess = gameProcess;
+
+                _autoCloseProgressUpdateStopwatch.Restart();
+                _autoCloseProgressUpdateTimer = new DispatcherTimer(
+                    TimeSpan.FromMilliseconds(UpdateThrottle.DefaultIntervalMilliseconds),
+                    DispatcherPriority.Render,
+                    AutoCloseProgressUpdateTimer,
+                    this.Dispatcher
+                );
+                _autoCloseProgressUpdateTimer.Start();
+
+                _autoCloseThreadInterrupt.Reset();
+                _autoCloseThread = new Thread(AutoCloseThread);
+                _autoCloseThread.Start();
+
+                _autoCloseActive = true;
+
+                L.CallerDebug($"Auto-closing in {AutoCloseTimeSpan}...");
+            }
+        }
+
+        private bool AutoCloseAbort(bool joinThread = true)
+        {
+            Thread? autoCloseThread = null;
+
+            lock (_autoCloseLock)
+            {
+                if (!_autoCloseActive)
+                {
+                    return false;
+                }
+
+                _autoCloseThreadInterrupt.Set();
+                if (joinThread)
+                {
+                    autoCloseThread = _autoCloseThread;
+                }
+                _autoCloseThread = null;
+
+                _autoCloseProgressUpdateTimer!.Stop();
+                _autoCloseProgressUpdateTimer = null;
+
+                this.Dispatcher.Invoke(AutoCloseResetProgress);
+
+                _autoCloseGameProcess!.Exited -= AutoCloseGameProcessExited;
+                _autoCloseGameProcess = null;
+
+                _autoCloseActive = false;
+            }
+
+            autoCloseThread?.Join();
+
+            return true;
+        }
+
+        private void AutoCloseResetProgress()
+        {
+            AutoCloseProgressBar.Value = 0;
+        }
+
+        private void AutoCloseGameProcessExited(object? sender, EventArgs e)
+        {
+            // This will be called from a thread pool
+
+            if (!AutoCloseAbort())
+            {
+                // If not active yet -- just bail.
+                // AutoCloseBegin() will also bail if the process has terminated already.
+                return;
+            }
+
+            if (sender is Process process)
+            {
+                L.CallerDebug($"Auto-close aborted due to game process terminating with {process.ExitCode} exit code.");
+
+                process.Dispose();
+            }
+            else
+            {
+                L.CallerDebug($"Auto-close aborted due to game process terminating.");
+            }
+
+            this.Dispatcher.Invoke(() =>
+            {
+                // Try to bring the window into foreground
+                this.Topmost = true;
+                this.Activate();
+                this.Topmost = false;
+            });
+        }
+
+        private void AutoClosePostProcessInput(object sender, ProcessInputEventArgs e)
+        {
+            if (e.StagingItem.Input is MouseButtonEventArgs m)
+            {
+                // Minimize number of different events being handled here
+                if (m.ButtonState == MouseButtonState.Pressed && m.RoutedEvent.RoutingStrategy == RoutingStrategy.Tunnel)
+                {
+                    if (AutoCloseAbort())
+                    {
+                        L.CallerDebug($"Auto-close aborted due to mouse down event.");
+                    }
+                }
+            }
+            else if (e.StagingItem.Input is KeyEventArgs k)
+            {
+                // Minimize number of different events being handled here
+                if (k.IsDown && !k.IsRepeat && k.RoutedEvent.RoutingStrategy == RoutingStrategy.Tunnel)
+                {
+                    if (AutoCloseAbort())
+                    {
+                        L.CallerDebug($"Auto-close aborted due to key down event.");
+                    }
+                }
+            }
+        }
+
+        private void AutoCloseThread()
+        {
+            if (_autoCloseThreadInterrupt.WaitOne(AutoCloseTimeSpan))
+            {
+                return;
+            }
+            else
+            {
+                if (AutoCloseAbort(joinThread: false))
+                {
+                    L.CallerDebug("Auto-closing...");
+                    this.Dispatcher.Invoke(this.Close);
+                }
+            }
+        }
+
+        private void AutoCloseProgressUpdateTimer(object? sender, EventArgs e)
+        {
+            double progress = Math.Max(0, AutoCloseTimeSpan.Ticks - _autoCloseProgressUpdateStopwatch.Elapsed.Ticks) / (double)AutoCloseTimeSpan.Ticks;
+
+            AutoCloseProgressBar.Value = progress * AutoCloseProgressBar.Maximum;
         }
     }
 }

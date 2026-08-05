@@ -5,6 +5,5 @@ namespace PD2Launcherv2.Messages
     {
         public bool IsBeta { get; set; }
         public bool IsCustom { get; set; }
-        public bool IsDisableUpdates { get; set; }
     }
 }

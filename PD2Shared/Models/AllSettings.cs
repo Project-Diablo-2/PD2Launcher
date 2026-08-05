@@ -8,6 +8,7 @@ namespace PD2Shared.Models
         public SelectedAuthorAndFilter SelectedAuthorAndFilter { get; set; }
         public Pd2AuthorList Pd2AuthorList { get; set; }
         public LauncherArgs LauncherArgs { get; set; }
+        public LauncherOptions LauncherOptions { get; set; }
         public News News { get; set; }
         public WindowPositionModel WindowPosition { get; set; }
         public ResetInfo ResetInfo { get; set; }

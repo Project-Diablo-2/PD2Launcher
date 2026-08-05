@@ -2,12 +2,16 @@ using GalaSoft.MvvmLight.Command;
 using GalaSoft.MvvmLight.Messaging;
 using PD2Launcherv2.Enums;
 using PD2Launcherv2.Helpers;
+using PD2Shared;
 using PD2Shared.Interfaces;
 using PD2Shared.Models;
-using ProjectDiablo2Launcherv2;
 using System.Windows;
 using System.Diagnostics;
 using PD2Launcherv2.Messages;
+using PD2Launcherv2.Utils;
+using PD2Shared.Logging;
+using static PD2Shared.Logging.LoggingStatic;
+using PD2Shared.Utils;
 
 namespace PD2Launcherv2.ViewModels
 {
@@ -40,6 +44,7 @@ namespace PD2Launcherv2.ViewModels
             MinFpsPickerItems = Constants.MinFpsPickerItems();
             ShaderPickerItems = Constants.ShaderPickerItems();
             LoadLauncherArgs();
+            LoadLauncherOptions();
             LoadDDrawStorage();
             DealWithLoadingModeComboBox(_localStorage);
             CloseCommand = new RelayCommand(CloseView);
@@ -100,6 +105,13 @@ namespace PD2Launcherv2.ViewModels
                     _isDdrawSelected = value;
                     OnPropertyChanged(nameof(IsDdrawSelected));
                     OnPropertyChanged(nameof(DDrawControlsVisible));
+
+                    Messenger.Default.Send(new RendererChangeMessage
+                    {
+                        UseD2GL = !_isDdrawSelected,
+                        // <!> This is quite horrible and should be made into an enum
+                        CncDdrawUsesOGL = _selectedRenderer == "opengl"
+                    });
                 }
             }
         }
@@ -136,6 +148,28 @@ namespace PD2Launcherv2.ViewModels
 
         private void SetWindowsPermissions()
         {
+            if (Wine.IsRunningUnderWine)
+            {
+                try
+                {
+                    Wine.ApplyWineConfiguration();
+
+                    MsgBox.Info("Configuration applied successfully.");
+                }
+                catch (Wine.WineException ex)
+                {
+                    L.CallerError(ex.InnerException, ex.Message);
+                    MsgBox.Exception(ex, "Failed to apply configuration:");
+                }
+                catch (Exception ex)
+                {
+                    L.CallerError(ex, "Failed to apply configuration.");
+                    MsgBox.Exception(ex, "Failed to apply configuration:");
+                }
+
+                return;
+            }
+
             var startInfo = new ProcessStartInfo()
             {
                 FileName = "powershell.exe",
@@ -147,6 +181,28 @@ namespace PD2Launcherv2.ViewModels
 
         private void RemoveWindowsPermissions()
         {
+            if (Wine.IsRunningUnderWine)
+            {
+                try
+                {
+                    Wine.RemoveWineConfiguration();
+
+                    MsgBox.Info("Configuration removed successfully.");
+                }
+                catch (Wine.WineException ex)
+                {
+                    L.CallerError(ex.InnerException, ex.Message);
+                    MsgBox.Exception(ex, "Failed to remove configuration:");
+                }
+                catch (Exception ex)
+                {
+                    L.CallerError(ex, "Failed to remove configuration.");
+                    MsgBox.Exception(ex, "Failed to remove configuration:");
+                }
+
+                return;
+            }
+
             var startInfo = new ProcessStartInfo()
             {
                 FileName = "powershell.exe",
@@ -274,6 +330,13 @@ namespace PD2Launcherv2.ViewModels
                 {
                     _selectedRenderer = value;
                     OnPropertyChanged(nameof(SelectedRenderer));
+
+                    Messenger.Default.Send(new RendererChangeMessage
+                    {
+                        UseD2GL = !_isDdrawSelected,
+                        // <!> This is quite horrible and should be made into an enum
+                        CncDdrawUsesOGL = _selectedRenderer == "opengl"
+                    });
                 }
             }
         }
@@ -502,6 +565,46 @@ namespace PD2Launcherv2.ViewModels
             }
         }
 
+        private bool _forceSoftwareRederer;
+        public bool ForceSoftwareRenderer
+        {
+            get => _forceSoftwareRederer;
+            set
+            {
+                if (_forceSoftwareRederer != value)
+                {
+                    _forceSoftwareRederer = value;
+                    OnPropertyChanged();
+                    Messenger.Default.Send(new LauncherOptionsChangeMessage
+                    {
+                        ForceSoftwareRenderer = value,
+                        UseHttp2 = UseHttp2,
+                        DisableAutoUpdate = AutoUpdate
+                    });
+                }
+            }
+        }
+
+        private bool _useHttp2;
+        public bool UseHttp2
+        {
+            get => _useHttp2;
+            set
+            {
+                if (_useHttp2 != value)
+                {
+                    _useHttp2 = value;
+                    OnPropertyChanged();
+                    Messenger.Default.Send(new LauncherOptionsChangeMessage
+                    {
+                        ForceSoftwareRenderer = ForceSoftwareRenderer,
+                        UseHttp2 = value,
+                        DisableAutoUpdate = AutoUpdate
+                    });
+                }
+            }
+        }
+
         private bool _autoUpdate;
         public bool AutoUpdate
         {
@@ -513,9 +616,12 @@ namespace PD2Launcherv2.ViewModels
                     Debug.WriteLine($"Set _autoUpdate {value}");
                     _autoUpdate = value;
                     OnPropertyChanged();
-                    var fileUpdateMode = _localStorage.LoadSection<FileUpdateModel>(StorageKey.FileUpdateModel);
-                    bool amIBeta = fileUpdateMode.FilePath.Equals("Beta");
-                    Messenger.Default.Send(new ConfigurationChangeMessage { IsDisableUpdates = value, IsBeta = amIBeta });
+                    Messenger.Default.Send(new LauncherOptionsChangeMessage
+                    {
+                        ForceSoftwareRenderer = ForceSoftwareRenderer,
+                        UseHttp2 = UseHttp2,
+                        DisableAutoUpdate = value
+                    });
                 }
             }
         }
@@ -600,9 +706,21 @@ namespace PD2Launcherv2.ViewModels
                 IsDdrawSelected = launcherArgs.graphics;
                 SkipToBnet = launcherArgs.skiptobnet;
                 SndBkg = launcherArgs.sndbkg;
-                AutoUpdate = launcherArgs.disableAutoUpdate;
             }
             Debug.WriteLine("end LoadLauncherArgs\n");
+        }
+
+        private void LoadLauncherOptions()
+        {
+            Debug.WriteLine("\nStart LoadLauncherOptions");
+            LauncherOptions launcherOptions = _localStorage.LoadSection<LauncherOptions>(StorageKey.LauncherOptions);
+            if (launcherOptions != null)
+            {
+                ForceSoftwareRenderer = launcherOptions.ForceSoftwareRenderer;
+                UseHttp2 = launcherOptions.UseHttp2;
+                AutoUpdate = launcherOptions.DisableAutoUpdate;
+            }
+            Debug.WriteLine("end LoadLauncherOptions\n");
         }
 
         private void UpdateLauncherArgsStorage()
@@ -613,11 +731,23 @@ namespace PD2Launcherv2.ViewModels
                 // Again, assuming true represents "ddraw"
                 graphics = IsDdrawSelected,
                 skiptobnet = SkipToBnet,
-                sndbkg = SndBkg,
-                disableAutoUpdate = AutoUpdate,
+                sndbkg = SndBkg
             };
             _localStorage.Update(StorageKey.LauncherArgs, launcherArgs);
             Debug.WriteLine("end UpdateLauncherArgsStorage\n");
+        }
+
+        private void UpdateLauncherOptionsStorage()
+        {
+            Debug.WriteLine("\nStart UpdateLauncherOptionsStorage");
+            var launcherOptions = new LauncherOptions
+            {
+                ForceSoftwareRenderer = ForceSoftwareRenderer,
+                UseHttp2 = UseHttp2,
+                DisableAutoUpdate = AutoUpdate
+            };
+            _localStorage.Update(StorageKey.LauncherOptions, launcherOptions);
+            Debug.WriteLine("end UpdateLauncherOptionsStorage\n");
         }
 
         private void LoadDDrawCheckBoxOptions()
@@ -769,6 +899,7 @@ namespace PD2Launcherv2.ViewModels
         {
             //save LauncherArgs Storage
             UpdateLauncherArgsStorage();
+            UpdateLauncherOptionsStorage();
             //save 
             UpdateDDrawStorage();
             //write ddrawstorage to .ini

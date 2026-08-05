@@ -10,17 +10,13 @@
                 <ResourceDictionary Source="Resources/Styles/ControlStyles.xaml"/>
             </ResourceDictionary.MergedDictionaries>
 
-            <!-- Global Style to remove the focus visual style from all controls -->
-            <Style TargetType="{x:Type Control}">
-                <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
-            </Style>
             <conv:InverseBooleanConverter x:Key="InverseBool"/>
             <conv:BooleanToVisibilityConverter x:Key="BoolToVisConverter"/>
             <conv:StringToIntConverter x:Key="StringToIntConverter"/>
             <local:ViewModelLocator x:Key="ViewModelLocator"/>
 
             <!-- Font Family Resources -->
-            <FontFamily x:Key="BlizzHeavy">pack://application:,,,/Resources/Fonts/exocet-blizzard-heavy.otf#Exocet Blizzard OT Light Bold</FontFamily>
+            <FontFamily x:Key="BlizzHeavy">pack://application:,,,/Resources/Fonts/exocet-blizzard-heavy.ttf#Exocet Blizzard OT Light Bold</FontFamily>
             <FontFamily x:Key="BlizzLight">pack://application:,,,/Resources/Fonts/exocet-blizzard-light.ttf#Exocet Blizzard OT Light Regular</FontFamily>
             <FontFamily x:Key="BlizzMedium">pack://application:,,,/Resources/Fonts/exocet-blizzard-medium.ttf#Exocet Blizzard OT Medium Regular</FontFamily>
 

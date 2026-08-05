@@ -4,6 +4,9 @@ namespace PD2Shared
 {
     public static class Constants
     {
+        // This could be generated and ingested during build as well
+        public const string VersionString = "2.14.3";
+
         public static class LauncherUpdate
         {
             public const string LegacyGcpMetadataUrl =

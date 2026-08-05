@@ -1,14 +1,17 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                    xmlns:local="clr-namespace:PD2Launcherv2.CustomControl">
+                    xmlns:local="clr-namespace:PD2Launcherv2.CustomControl"
+                    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                    xmlns:comment="https://whatever/comment"
+                    mc:Ignorable="comment">
 
     <Style x:Key="TransparentButtonWithHighlight" TargetType="Button">
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="BorderBrush" Value="Transparent"/>
         <Setter Property="BorderThickness" Value="0"/>
-        <Setter Property="FontFamily" Value="{StaticResource BlizzHeavy}"/>
+        <Setter Property="FontFamily" Value="{DynamicResource BlizzHeavy}"/>
         <Setter Property="FontSize" Value="16"/>
-        <Setter Property="Foreground" Value="{StaticResource GoldBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource GoldBrush}"/>
         <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
         <Setter Property="Focusable" Value="False"/>
         <Setter Property="Margin" Value="0,0,0,20"/>
@@ -29,33 +32,51 @@
         </Setter>
         <Style.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
-                <Setter Property="Foreground" Value="{StaticResource GoldLighterBrush}"/>
+                <Setter Property="Foreground" Value="{DynamicResource GoldLighterBrush}"/>
             </Trigger>
         </Style.Triggers>
     </Style>
 
-    <Style x:Key="HyperlinkMouseOverStyle" TargetType="TextBlock">
-        <Setter Property="Margin" Value="5"/>
-        <Setter Property="FontSize" Value="20"/>
-        <Setter Property="Foreground" Value="{StaticResource GoldBrush}"/>
+    <Style x:Key="HyperlinkStyle" TargetType="Hyperlink">
+        <Setter Property="OverridesDefaultStyle" Value="True"/>
+        <Setter Property="Foreground" Value="{DynamicResource GoldBrush}"/>
         <Setter Property="FontSize" Value="18"/>
+        <Setter Property="FontFamily" Value="{DynamicResource BlizzMedium}"/>
         <Style.Triggers>
-        <Trigger Property="IsMouseOver" Value="True">
-            <Setter Property="Foreground" Value="{StaticResource WhiteBrush}" />
-        </Trigger>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Foreground" Value="{DynamicResource WhiteBrush}"/>
+                <Setter Property="Cursor" Value="Hand"/>
+            </Trigger>
         </Style.Triggers>
     </Style>
 
-    <Style x:Key="{x:Static SystemParameters.FocusVisualStyleKey}">
-        <Setter Property="Control.Template">
-            <Setter.Value>
-                <ControlTemplate>
-                    <Border BorderBrush="Transparent" BorderThickness="1">
-                        <Rectangle Margin="2" Stroke="Transparent" StrokeThickness="1"/>
-                    </Border>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
+    <Style x:Key="HyperlinkTextBlockWrapperStyle" TargetType="TextBlock">
+        <Setter Property="Margin" Value="10"/>
+        <Setter Property="HorizontalAlignment" Value="Center"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+
+    <Style x:Key="HyperlinkTextBlockSeparatorStyle" TargetType="TextBlock">
+        <Setter Property="Margin" Value="5"/>
+        <Setter Property="Foreground" Value="{DynamicResource GoldBrush}"/>
+        <Setter Property="FontSize" Value="20"/>
+        <Setter Property="Text" Value="&#x2022;"/> <!-- "•" without resorting to a dedicated resource/constant -->
+    </Style>
+
+    <!-- Attempt near pixel-perfect rendering of images, text blocks and everything in-between -->
+    <Style TargetType="FrameworkElement" x:Key="PixelPerfectFrameworkElement">
+        <!-- This seems to work when set on the Window level (https://learn.microsoft.com/en-us/dotnet/api/system.windows.uielement.snapstodevicepixels#remarks) -->
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+        <!-- ...and this too (https://learn.microsoft.com/en-us/dotnet/api/system.windows.frameworkelement.uselayoutrounding#remarks) -->
+        <Setter Property="UseLayoutRounding" Value="True"/>
+        <Setter Property="RenderOptions.BitmapScalingMode" Value="NearestNeighbor"/>
+    </Style>
+
+    <!-- Force images to retain their original size -->
+    <Style TargetType="Image">
+        <Setter Property="Stretch" Value="None"/>
+        <Setter Property="Width" Value="{Binding Source.PixelWidth, RelativeSource={RelativeSource Self}}"/>
+        <Setter Property="Height" Value="{Binding Source.PixelHeight, RelativeSource={RelativeSource Self}}"/>
     </Style>
 
     <Style TargetType="{x:Type local:CustomImageButton}">
@@ -63,11 +84,14 @@
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type local:CustomImageButton}">
                     <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
-                        <Image x:Name="img" Source="{Binding NormalImageSource, RelativeSource={RelativeSource TemplatedParent}}" Stretch="Fill"/>
+                        <Image x:Name="img" Source="{Binding NormalImageSource, RelativeSource={RelativeSource TemplatedParent}}"/>
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsPressed" Value="True">
                             <Setter TargetName="img" Property="Source" Value="{Binding PressedImageSource, RelativeSource={RelativeSource TemplatedParent}}"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="img" Property="Source" Value="{Binding DisabledImageSource, RelativeSource={RelativeSource TemplatedParent}}"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -75,32 +99,214 @@
         </Setter>
     </Style>
 
+    <Style TargetType="{x:Type local:BlankButtonWithText}">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type local:BlankButtonWithText}">
+                    <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
+                        <Grid>
+                            <Image x:Name="img" Source="pack://application:,,,/Resources/Images/blank.png"/>
+                            <TextBlock x:Name="text"
+                                   Text="{Binding Text, RelativeSource={RelativeSource TemplatedParent}}"
+                                   FontFamily="{DynamicResource BlizzHeavy}"
+                                   TextAlignment="Center"
+                                   TextOptions.TextFormattingMode="Display"
+                                   TextOptions.TextRenderingMode="Grayscale"
+                                   TextOptions.TextHintingMode="Fixed"
+                                   FontSize="21"
+                                   FontStretch="Condensed"
+                                   comment:FontStretch="If only that worked..."
+                                   VerticalAlignment="Center"
+                                   HorizontalAlignment="Center"
+                                   MaxWidth="{Binding ElementName=img, Path=Width, Mode=OneWay}"
+                                   MaxHeight="{Binding ElementName=img, Path=Height, Mode=OneWay}"
+                                   TextTrimming="CharacterEllipsis"
+                                   Visibility="Visible"
+                                   Margin="0,0,0,-2">
+                                <TextBlock.Effect>
+                                    <DropShadowEffect
+                                                  RenderingBias="Quality"
+                                                  Color="#FFCCCCCC"
+                                                  BlurRadius="1.5"
+                                                  ShadowDepth="1.5"
+                                                  Direction="315" />
+                                </TextBlock.Effect>
+                            </TextBlock>
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <!-- Common triggers -->
+
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="text" Property="Margin" Value="-4,0,0,-6"/>
+                            <Setter TargetName="text" Property="Effect">
+                                <Setter.Value>
+                                    <DropShadowEffect
+                                                  RenderingBias="Quality"
+                                                  Color="#FFCCCCCC"
+                                                  BlurRadius="1.5"
+                                                  ShadowDepth="1.5"
+                                                  Opacity="0.75"
+                                                  Direction="315" />
+                                </Setter.Value>
+                            </Setter>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="text" Property="Effect">
+                                <Setter.Value>
+                                    <DropShadowEffect
+                                                  RenderingBias="Quality"
+                                                  Color="#FFA0A0A0"
+                                                  BlurRadius="2.0"
+                                                  ShadowDepth="1.5"
+                                                  Direction="315" />
+                                </Setter.Value>
+                            </Setter>
+                        </Trigger>
+
+                        <!-- Normal ButtonKind -->
+
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="ButtonKind" Value="Normal" />
+                                <Condition Property="IsPressed" Value="True" />
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="img" Property="Source" Value="pack://application:,,,/Resources/Images/blank_pressed.png"/>
+                        </MultiTrigger>
+
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="ButtonKind" Value="Normal" />
+                                <Condition Property="IsEnabled" Value="False" />
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="img" Property="Source" Value="pack://application:,,,/Resources/Images/blank_disabled.png"/>
+                        </MultiTrigger>
+
+                        <!-- SplitTop ButtonKind -->
+
+                        <!-- Overrides -->
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="ButtonKind" Value="SplitTop" />
+                                <Condition Property="IsEnabled" Value="True" />
+                                <Condition Property="IsPressed" Value="False" />
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="img" Property="Source" Value="pack://application:,,,/Resources/Images/blank_split_top.png"/>
+                        </MultiTrigger>
+
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="ButtonKind" Value="SplitTop" />
+                                <Condition Property="IsPressed" Value="True" />
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="img" Property="Source" Value="pack://application:,,,/Resources/Images/blank_split_top_pressed.png"/>
+                        </MultiTrigger>
+
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="ButtonKind" Value="SplitTop" />
+                                <Condition Property="IsEnabled" Value="False" />
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="img" Property="Source" Value="pack://application:,,,/Resources/Images/blank_split_top_disabled.png"/>
+                        </MultiTrigger>
+
+                        <!-- SplitBottom ButtonKind -->
+
+                        <!-- Overrides -->
+                        <Trigger Property="ButtonKind" Value="SplitBottom">
+                            <Setter TargetName="text" Property="FontSize" Value="15"/>
+                            <Setter TargetName="text" Property="Margin" Value="0,0,0,2"/>
+                            <Setter TargetName="text" Property="Effect">
+                                <Setter.Value>
+                                    <DropShadowEffect
+                                                  RenderingBias="Quality"
+                                                  Color="#FFCCCCCC"
+                                                  BlurRadius="1.5"
+                                                  ShadowDepth="1.5"
+                                                  Opacity="0.75"
+                                                  Direction="315" />
+                                </Setter.Value>
+                            </Setter>
+                        </Trigger>
+
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="ButtonKind" Value="SplitBottom" />
+                                <Condition Property="IsEnabled" Value="True" />
+                                <Condition Property="IsPressed" Value="False" />
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="img" Property="Source" Value="pack://application:,,,/Resources/Images/blank_split_bottom.png"/>
+                        </MultiTrigger>
+
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="ButtonKind" Value="SplitBottom" />
+                                <Condition Property="IsPressed" Value="True" />
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="img" Property="Source" Value="pack://application:,,,/Resources/Images/blank_split_bottom_pressed.png"/>
+                            <!-- Overrides -->
+                            <Setter TargetName="text" Property="Margin" Value="-4,0,0,-2"/>
+                            <Setter TargetName="text" Property="Effect">
+                                <Setter.Value>
+                                    <DropShadowEffect
+                                                  RenderingBias="Quality"
+                                                  Color="#FFCCCCCC"
+                                                  BlurRadius="1.5"
+                                                  ShadowDepth="1.5"
+                                                  Opacity="0.5"
+                                                  Direction="315" />
+                                </Setter.Value>
+                            </Setter>
+                        </MultiTrigger>
+
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="ButtonKind" Value="SplitBottom" />
+                                <Condition Property="IsEnabled" Value="False" />
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="img" Property="Source" Value="pack://application:,,,/Resources/Images/blank_split_bottom_disabled.png"/>
+                            <!-- Overrides -->
+                            <Setter TargetName="text" Property="Effect">
+                                <Setter.Value>
+                                    <DropShadowEffect
+                                                  RenderingBias="Quality"
+                                                  Color="#FFA0A0A0"
+                                                  BlurRadius="2.0"
+                                                  ShadowDepth="1.5"
+                                                  Opacity="0.75"
+                                                  Direction="315" />
+                                </Setter.Value>
+                            </Setter>
+                        </MultiTrigger>
+
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <Style x:Key="CustomColorChangeButton" TargetType="Button">
-        <Setter Property="Background" Value="{StaticResource GoldBrush}" />
-        <Setter Property="Foreground" Value="{StaticResource BlackBrush}" />
-        <Setter Property="FontFamily" Value="{StaticResource BlizzMedium}" />
+        <Setter Property="Background" Value="{DynamicResource GoldBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource BlackBrush}" />
+        <Setter Property="FontFamily" Value="{DynamicResource BlizzMedium}" />
         <Setter Property="FontSize" Value="22" />
         <Setter Property="FocusVisualStyle" Value="{x:Null}" />
-        <Setter Property="Margin" Value="0,0,0,50" />
-        <Setter Property="Padding" Value="10,5" />
-        <Setter Property="BorderThickness" Value="2" />
-        <Setter Property="BorderBrush" Value="{StaticResource GoldBrush}" />
+        <Setter Property="Padding" Value="5" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
                     <Border Background="{TemplateBinding Background}" 
-                        BorderBrush="{TemplateBinding BorderBrush}" 
-                        BorderThickness="{TemplateBinding BorderThickness}" 
+                        Padding="{TemplateBinding Padding}"
                         CornerRadius="5">
                         <ContentPresenter HorizontalAlignment="Center" 
                                       VerticalAlignment="Center" />
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter Property="Background" Value="{StaticResource GoldLighterBrush}" />
+                            <Setter Property="Background" Value="{DynamicResource GoldLighterBrush}" />
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter Property="Background" Value="{StaticResource ShakoBrush}" />
+                            <Setter Property="Background" Value="{DynamicResource ShakoBrush}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -109,17 +315,36 @@
     </Style>
 
     <Style x:Key="ImageFillProgressBarStyle" TargetType="{x:Type ProgressBar}">
-        <Setter Property="Foreground" Value="{StaticResource GoldBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource GoldDarkerBrush}" />
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ProgressBar">
                     <Grid>
-                        <Rectangle Name="PART_Track" Opacity="0.5" Fill="Transparent"/>
-                        <Rectangle Name="PART_Indicator" HorizontalAlignment="Left" Fill="{TemplateBinding Foreground}"/>
-                        <Grid>
-                            <Image Source="pack://application:,,,/Resources/Images/empty_button.png" Stretch="Fill"/>
-                        </Grid>
+                        <Rectangle Name="PART_Track" Fill="{TemplateBinding Background}" />
+                        <Rectangle Name="PART_Indicator"
+                                   HorizontalAlignment="Left"
+                                   Opacity="0.5"
+                                   Fill="{TemplateBinding Foreground}" />
+                        <Image Source="pack://application:,,,/Resources/Images/empty_button.png"/>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="SimpleProgressBarStyle" TargetType="{x:Type ProgressBar}">
+        <Setter Property="Foreground" Value="{DynamicResource GoldLighterBrush}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ProgressBar">
+                    <Grid>
+                        <Rectangle Name="PART_Track" Fill="{TemplateBinding Background}" />
+                        <Rectangle Name="PART_Indicator"
+                                   HorizontalAlignment="Left"
+                                   Opacity="0.75"
+                                   Fill="{TemplateBinding Foreground}" />
                     </Grid>
                 </ControlTemplate>
             </Setter.Value>
@@ -129,12 +354,12 @@
     <!-- Close Button -->
     <Style x:Key="CloseButtonStyle" TargetType="Button">
         <Setter Property="Background" Value="Transparent"/>
-        <Setter Property="Foreground" Value="{StaticResource GoldBrush}"/>
-        <Setter Property="FontFamily" Value="{StaticResource BlizzHeavy}"/>
+        <Setter Property="Foreground" Value="{DynamicResource GoldBrush}"/>
+        <Setter Property="FontFamily" Value="{DynamicResource BlizzHeavy}"/>
         <Setter Property="FontSize" Value="24"/>
         <Setter Property="FontWeight" Value="Bold"/>
         <Setter Property="BorderBrush" Value="Transparent"/>
-        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="BorderThickness" Value="2.5"/>
         <Setter Property="Padding" Value="4"/>
         <Setter Property="HorizontalAlignment" Value="Right"/>
         <Setter Property="VerticalAlignment" Value="Top"/>
@@ -153,7 +378,7 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter Property="BorderBrush" Value="{StaticResource ShakoBrush}" />
+                            <Setter Property="BorderBrush" Value="{DynamicResource ShakoBrush}" />
                             <Setter Property="Foreground" Value="White"/>
                             <Setter Property="BorderThickness" Value="2.5" />
                         </Trigger>
@@ -164,7 +389,6 @@
     </Style>
 
     <Style x:Key="CustomVerticalScrollBar" TargetType="{x:Type ScrollBar}">
-        <Setter Property="Width" Value="10" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type ScrollBar}">
@@ -177,8 +401,7 @@
                         <RepeatButton Grid.Row="0" Command="ScrollBar.LineUpCommand" 
                                   Content="UP" 
                                   Background="Transparent"
-                                  Foreground="{StaticResource GoldBrush}" 
-                                  Width="10" Height="18">
+                                  Foreground="{DynamicResource GoldBrush}">
                             <RepeatButton.ContentTemplate>
                                 <DataTemplate>
                                     <Image Source="pack://application:,,,/Resources/Images/thin_prev.jpg"/>
@@ -187,14 +410,13 @@
                         </RepeatButton>
                         <Track Grid.Row="1" Name="PART_Track" IsDirectionReversed="true">
                             <Track.Thumb>
-                                <Thumb Background="{StaticResource GoldBrush}" BorderBrush="Transparent" Width="10" />
+                                <Thumb Background="{DynamicResource GoldDarkerBrush}" BorderBrush="Transparent"/>
                             </Track.Thumb>
                         </Track>
                         <RepeatButton Grid.Row="2" Command="ScrollBar.LineDownCommand" 
                                   Content="DOWN" 
                                   Background="Transparent"
-                                  Foreground="{StaticResource GoldBrush}" 
-                                  Width="10" Height="18">
+                                  Foreground="{DynamicResource GoldBrush}">
                             <RepeatButton.ContentTemplate>
                                 <DataTemplate>
                                     <Image Source="pack://application:,,,/Resources/Images/thin_next.jpg"/>
@@ -209,7 +431,7 @@
 
 
     <Style x:Key="CustomListBoxItemStyle" TargetType="ListBoxItem">
-        <Setter Property="Foreground" Value="{StaticResource GoldBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource GoldBrush}" />
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="Template">
             <Setter.Value>
@@ -220,7 +442,7 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsSelected" Value="true">
-                            <Setter TargetName="Border" Property="Background" Value="{StaticResource ShakoBrush}" />
+                            <Setter TargetName="Border" Property="Background" Value="{DynamicResource ShakoBrush}" />
                             <Setter TargetName="Border" Property="BorderBrush" Value="Transparent" />
                             <Setter Property="Foreground" Value="White"/>
                         </Trigger>
@@ -234,7 +456,7 @@
     </Style>
 
     <Style x:Key="CustomNewsListBoxItemStyle" TargetType="ListBoxItem">
-        <Setter Property="Foreground" Value="{StaticResource SoftWhite}" />
+        <Setter Property="Foreground" Value="{DynamicResource SoftWhite}" />
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="Template">
             <Setter.Value>
@@ -258,14 +480,14 @@
     </Style>
 
     <Style TargetType="CheckBox" x:Key="CustomCheckBoxStyle">
-        <Setter Property="FontFamily" Value="{StaticResource BlizzMedium}"/>
+        <Setter Property="FontFamily" Value="{DynamicResource BlizzMedium}"/>
         <Setter Property="FontSize" Value="18"/>
-        <Setter Property="Foreground" Value="{StaticResource GoldLighterBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource GoldLighterBrush}"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="CheckBox">
                     <StackPanel Orientation="Horizontal">
-                        <Image Name="CheckImage" Width="20" Height="20" Source="pack://application:,,,/Resources/Images/checkbox_unchecked.png"/>
+                        <Image Name="CheckImage" Source="pack://application:,,,/Resources/Images/checkbox_unchecked.png"/>
                         <ContentPresenter Margin="5,0,0,0" VerticalAlignment="Center"/>
                     </StackPanel>
                     <ControlTemplate.Triggers>
@@ -284,7 +506,7 @@
             <Setter.Value>
                 <ControlTemplate TargetType="RadioButton">
                     <StackPanel Orientation="Horizontal">
-                        <Image Name="RadioImage" Width="20" Height="20"
+                        <Image Name="RadioImage"
                            Source="pack://application:,,,/Resources/Images/checkbox_unchecked.png"/>
                         <ContentPresenter Margin="5,0,0,0" VerticalAlignment="Center"/>
                     </StackPanel>
@@ -301,9 +523,9 @@
 
 
     <Style x:Key="CustomTextBoxStyle" TargetType="{x:Type TextBox}">
-        <Setter Property="Foreground" Value="{StaticResource GoldBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource GoldBrush}"/>
         <Setter Property="Background" Value="#FF333333"/>
-        <Setter Property="BorderBrush" Value="{StaticResource GoldBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource GoldBrush}"/>
         <Setter Property="HorizontalAlignment" Value="Left"/>
         <Setter Property="Width" Value="175"/>
         <Setter Property="Margin" Value="10"/>
@@ -311,7 +533,7 @@
         <Setter Property="FocusVisualStyle" Value="{x:Null}" />
         <Setter Property="Padding" Value="4"/>
         <Setter Property="FontSize" Value="14"/>
-        <Setter Property="FontFamily" Value="{StaticResource BlizzLight}"/>
+        <Setter Property="FontFamily" Value="{DynamicResource BlizzLight}"/>
         <Setter Property="Height" Value="35"/>
         <Setter Property="Template">
             <Setter.Value>
@@ -327,31 +549,31 @@
         </Setter>
         <Style.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
-                <Setter Property="BorderBrush" Value="{StaticResource GoldLighterBrush}"/>
+                <Setter Property="BorderBrush" Value="{DynamicResource GoldLighterBrush}"/>
                 <Setter Property="BorderThickness" Value="2"/>
             </Trigger>
             <Trigger Property="IsFocused" Value="True">
-                <Setter Property="BorderBrush" Value="{StaticResource ShakoBrush}"/>
+                <Setter Property="BorderBrush" Value="{DynamicResource ShakoBrush}"/>
             </Trigger>
         </Style.Triggers>
     </Style>
 
     <Style x:Key="CustomComboBoxStyle" TargetType="ComboBox">
-        <Setter Property="Foreground" Value="{StaticResource GoldBrush}"/>
-        <Setter Property="FontFamily" Value="{StaticResource BlizzHeavy}"/>
+        <Setter Property="Foreground" Value="{DynamicResource GoldBrush}"/>
+        <Setter Property="FontFamily" Value="{DynamicResource BlizzHeavy}"/>
         <Setter Property="FontSize" Value="16"/>
         <Setter Property="Width" Value="175"/>
         <Setter Property="HorizontalAlignment" Value="Left"/>
         <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
         <Setter Property="Background" Value="#FF333333"/>
-        <Setter Property="BorderBrush" Value="{StaticResource GoldBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource GoldBrush}"/>
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="Margin" Value="0,0,0,20"/>
         <Setter Property="ItemContainerStyle">
             <Setter.Value>
                 <Style TargetType="ComboBoxItem">
                     <Setter Property="Background" Value="Transparent"/>
-                    <Setter Property="Foreground" Value="{StaticResource GoldBrush}"/>
+                    <Setter Property="Foreground" Value="{DynamicResource GoldBrush}"/>
                     <Setter Property="Template">
                         <Setter.Value>
                             <ControlTemplate TargetType="ComboBoxItem">
@@ -360,7 +582,7 @@
                                 </Border>
                                 <ControlTemplate.Triggers>
                                     <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter TargetName="Border" Property="Background" Value="{StaticResource ShakoBrush}"/>
+                                        <Setter TargetName="Border" Property="Background" Value="{DynamicResource ShakoBrush}"/>
                                         <Setter Property="Foreground" Value="White"/>
                                     </Trigger>
                                 </ControlTemplate.Triggers>
@@ -414,7 +636,7 @@
         </Setter>
         <Style.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
-                <Setter Property="Foreground" Value="{StaticResource GoldLighterBrush}"/>
+                <Setter Property="Foreground" Value="{DynamicResource GoldLighterBrush}"/>
             </Trigger>
         </Style.Triggers>
     </Style>
@@ -429,7 +651,7 @@
                             <RowDefinition Height="*"/>
                             <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
-                        <RepeatButton Grid.Row="0" Command="ScrollBar.LineUpCommand" Content="UP" Background="Black" Foreground="{StaticResource GoldBrush}" Width="18" Height="18">
+                        <RepeatButton Grid.Row="0" Command="ScrollBar.LineUpCommand" Content="UP" Background="Black" Foreground="{DynamicResource GoldBrush}">
                             <RepeatButton.ContentTemplate>
                                 <DataTemplate>
                                     <Image Source="pack://application:,,,/Resources/Images/thin_prev.jpg"/>
@@ -438,10 +660,10 @@
                         </RepeatButton>
                         <Track Grid.Row="1" Name="PART_Track" IsDirectionReversed="true">
                             <Track.Thumb>
-                                <Thumb Background="{StaticResource ShakoBrush}" BorderBrush="{StaticResource GoldBrush}" Foreground="Black"/>
+                                <Thumb Background="{DynamicResource ShakoBrush}" BorderBrush="{DynamicResource GoldBrush}" Foreground="Black"/>
                             </Track.Thumb>
                         </Track>
-                        <RepeatButton Grid.Row="2" Command="ScrollBar.LineDownCommand" Content="DOWN" Background="Black" Foreground="{StaticResource GoldBrush}" Width="18" Height="18">
+                        <RepeatButton Grid.Row="2" Command="ScrollBar.LineDownCommand" Content="DOWN" Background="Black" Foreground="{DynamicResource GoldBrush}">
                             <RepeatButton.ContentTemplate>
                                 <DataTemplate>
                                     <Image Source="pack://application:,,,/Resources/Images/thin_next.jpg"/>
@@ -457,14 +679,14 @@
     <Style x:Key="OptionsTextBlockHeaderStyle" TargetType="TextBlock">
         <Setter Property="Margin" Value="10"/>
         <Setter Property="FontWeight" Value="Bold"/>
-        <Setter Property="FontFamily" Value="{StaticResource BlizzMedium}"/>
-        <Setter Property="Foreground" Value="{StaticResource GoldBrush}"/>
+        <Setter Property="FontFamily" Value="{DynamicResource BlizzMedium}"/>
+        <Setter Property="Foreground" Value="{DynamicResource GoldBrush}"/>
         <Setter Property="FontSize" Value="14"/>
     </Style>
 
     <Style x:Key="OptionsSubText" TargetType="TextBlock">
-        <Setter Property="FontFamily" Value="{StaticResource BlizzMedium}"/>
-        <Setter Property="Foreground" Value="{StaticResource GoldDarkerBrush}"/>
+        <Setter Property="FontFamily" Value="{DynamicResource BlizzMedium}"/>
+        <Setter Property="Foreground" Value="{DynamicResource GoldDarkerBrush}"/>
         <Setter Property="Margin" Value="0,10,0,0"/>
     </Style>
 
