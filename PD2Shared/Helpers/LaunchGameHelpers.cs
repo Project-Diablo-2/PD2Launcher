@@ -37,6 +37,9 @@ namespace PD2Shared.Helpers
                     WorkingDirectory = Env.GetCwd(),
                     FileName = Path.Combine(Env.GetCwd(), "Game.exe"),
                     Arguments = ConstructLaunchArguments(launcherArgs),
+                    // Run via shell to prevent throwing a Win32Exception with 'The requested operation requires elevation'
+                    // whenever the executable is marked to run as elevated.
+                    UseShellExecute = true
                 }
             };
 
