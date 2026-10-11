@@ -50,7 +50,7 @@
                 </StackPanel>
 
                 <GroupBox Header="Graphics" Margin="10,0,0,0" FontWeight="Bold" BorderThickness="0" 
-                          FontFamily="{StaticResource BlizzMedium}" Foreground="{StaticResource GoldBrush}" 
+                          FontFamily="{StaticResource BlizzMedium}" Foreground="{StaticResource GoldLighterBrush}"
                           FontSize="14">
                     <StackPanel>
                         <RadioButton x:Name="d2gl" Content="D2GL (-3dfx)" GroupName="renderer" Style="{StaticResource CustomRadioButtonStyle}"
