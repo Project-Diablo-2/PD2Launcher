@@ -968,10 +968,11 @@ namespace PD2Shared.GameFileUpdate
 
                 var stateStr = userRequested ? "canceled" : "interrupted";
                 var logEventLevel = userRequested ? LogEventLevel.Warning : LogEventLevel.Error;
+                var exceptionToLog = userRequested ? null : ex;
 
                 if (totalBytesWritten > 0)
                 {
-                    L.CallerWrite(logEventLevel, $"{url}: download {stateStr} at {totalBytesWritten} ({Formatting.FormatSizeInMiB(totalBytesWritten)})");
+                    L.CallerWrite(logEventLevel, exceptionToLog, $"{url}: download {stateStr} at {totalBytesWritten} ({Formatting.FormatSizeInMiB(totalBytesWritten)})");
                     return new DownloadResult(
                         ex,
                         totalBytesWritten,
@@ -983,9 +984,7 @@ namespace PD2Shared.GameFileUpdate
                 }
                 else
                 {
-                    // Treat a zero-sized partial download candidate as an unrecoverable failed download
-
-                    L.CallerError($"{url}: download {stateStr}.");
+                    L.CallerWrite(logEventLevel, exceptionToLog, $"{url}: download {stateStr}.");
                     return new DownloadResult(ex);
                 }
             }
@@ -1558,7 +1557,7 @@ namespace PD2Shared.GameFileUpdate
                     }
                     catch (Exception ex)
                     {
-                        L.CallerError(ex.InnerException, $"{nameof(LoadManifest)}() threw");
+                        L.CallerError(ex, $"{nameof(LoadManifest)}() threw");
                     }
                 }
                 else
@@ -1610,7 +1609,7 @@ namespace PD2Shared.GameFileUpdate
                         offlineIndicatorProgress?.Report(true);
                     }
 
-                    L.CallerError(ex.InnerException, $"{nameof(DownloadMetadata)}() threw");
+                    L.CallerError(ex, $"{nameof(DownloadMetadata)}() threw");
                 }
 
                 if (metadataEx == null)
