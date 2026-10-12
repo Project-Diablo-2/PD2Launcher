@@ -1419,7 +1419,10 @@ namespace PD2Shared.GameFileUpdate
 
             using var socketsHttpHandler = new SocketsHttpHandler()
             {
-                ConnectTimeout = TimeSpan.FromSeconds(3),
+#if DEBUG
+                // Use an aggressive timeout for debugging
+                ConnectTimeout = TimeSpan.FromSeconds(2),
+#endif
 
                 // These seem to be only relevant for HTTP/2
                 KeepAlivePingPolicy = HttpKeepAlivePingPolicy.Always,
@@ -1489,7 +1492,7 @@ namespace PD2Shared.GameFileUpdate
             using var httpClient = new HttpClient(socketsHttpHandler)
             {
                 DefaultVersionPolicy = useHttp2 ? HttpVersionPolicy.RequestVersionOrHigher : HttpVersionPolicy.RequestVersionOrLower,
-                DefaultRequestVersion = useHttp2 ? new Version(2, 0) : new Version(1, 1),
+                DefaultRequestVersion = useHttp2 ? HttpVersion.Version20 : HttpVersion.Version11,
 
 #if !DEBUG
                 // Slightly above the 15 sec timeout of a DNS query (https://learn.microsoft.com/en-us/dotnet/api/system.net.http.httpclient.timeout#remarks).
@@ -1498,7 +1501,7 @@ namespace PD2Shared.GameFileUpdate
                 Timeout = TimeSpan.FromSeconds(20)
 #else
                 // Use an aggressive timeout for debugging
-                Timeout = TimeSpan.FromSeconds(2)
+                Timeout = TimeSpan.FromSeconds(3)
 #endif
             };
 
