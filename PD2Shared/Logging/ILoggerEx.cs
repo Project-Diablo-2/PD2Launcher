@@ -34,6 +34,11 @@ namespace PD2Shared.Logging
             logger.Write(logEventLevel, exception, $"{(callerName + "()"),-30} " + messageTemplate, propertyValues);
         }
 
+        public static void CallerWrite(this ILogger logger, Serilog.Events.LogEventLevel logEventLevel, Exception? exception, string messageTemplate, object?[]? propertyValues = null, [CallerMemberName] string callerName = "?")
+        {
+            CallerWrite(logger, logEventLevel, exception, messageTemplate, callerName, propertyValues);
+        }
+
         public static void CallerWrite(this ILogger logger, Serilog.Events.LogEventLevel logEventLevel, string messageTemplate, object?[]? propertyValues = null, [CallerMemberName] string callerName = "?")
         {
             CallerWrite(logger, logEventLevel, exception: null, messageTemplate, callerName, propertyValues);
