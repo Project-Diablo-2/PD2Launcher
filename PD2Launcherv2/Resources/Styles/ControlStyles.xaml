@@ -69,7 +69,6 @@
         <Setter Property="SnapsToDevicePixels" Value="True"/>
         <!-- ...and this too (https://learn.microsoft.com/en-us/dotnet/api/system.windows.frameworkelement.uselayoutrounding#remarks) -->
         <Setter Property="UseLayoutRounding" Value="True"/>
-        <Setter Property="RenderOptions.BitmapScalingMode" Value="NearestNeighbor"/>
     </Style>
 
     <!-- Force images to retain their original size -->
