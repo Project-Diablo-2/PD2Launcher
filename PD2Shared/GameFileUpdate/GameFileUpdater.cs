@@ -730,6 +730,8 @@ namespace PD2Shared.GameFileUpdate
             // Explicitly request a "0-" range (the entire file) (https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Range#syntax)
             request.Headers.Range = new RangeHeaderValue((long?)0, (long?)null);
 
+            L.CallerDebug($"{url}: querying...");
+
             using var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
             response.ThrowIfUnsuccessful();
 
@@ -737,11 +739,6 @@ namespace PD2Shared.GameFileUpdate
             // A response of 200 and "Accept-Ranges: bytes" means the server generally accepts ranges, but cannot fulfill this particular request
             // (likely due to encoding) and will send the entire file instead.
             var acceptsRanges = response.StatusCode == System.Net.HttpStatusCode.PartialContent;
-
-            if (!acceptsRanges)
-            {
-                L.CallerWarning($"{url}: {response.StatusCode}; Cannot resume");
-            }
 
             {
                 var h = response.Content.Headers;
@@ -752,7 +749,7 @@ namespace PD2Shared.GameFileUpdate
                     var contentLengthStr = h.ContentLength == null ? "?" : Formatting.FormatSizeInMiB(h.ContentLength.Value);
 
                     var cr = h.ContentRange;
-                    L.CallerDebug($"{url}: {response.StatusCode}; Content-Range: {cr.From?.ToString() ?? ""}-{cr.To?.ToString() ?? ""}/{cr.Length?.ToString() ?? "*"}; Content-Length: {h.ContentLength?.ToString() ?? "?"} ({contentLengthStr})");
+                    L.CallerDebug($"{url}: {(int)response.StatusCode} ({response.StatusCode}); Content-Range: {cr.From?.ToString() ?? ""}-{cr.To?.ToString() ?? ""}/{cr.Length?.ToString() ?? "*"}; Content-Length: {h.ContentLength?.ToString() ?? "?"} ({contentLengthStr})");
 
                     return cr.Length ?? h.ContentLength;
                 }
@@ -760,7 +757,7 @@ namespace PD2Shared.GameFileUpdate
                 {
                     var contentLengthStr = h.ContentLength == null ? "?" : Formatting.FormatSizeInMiB(h.ContentLength.Value);
 
-                    L.CallerDebug($"{url}: {response.StatusCode}; Content-Length: {h.ContentLength?.ToString() ?? "?"} ({contentLengthStr})");
+                    L.CallerWarning($"{url}: {(int)response.StatusCode} ({response.StatusCode}); Content-Length: {h.ContentLength?.ToString() ?? "?"} ({contentLengthStr})");
 
                     return h.ContentLength;
                 }
@@ -860,6 +857,8 @@ namespace PD2Shared.GameFileUpdate
 
             try
             {
+                L.CallerDebug($"{url}: downloading...");
+
                 using var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
                 response.ThrowIfUnsuccessful();
 
@@ -881,11 +880,7 @@ namespace PD2Shared.GameFileUpdate
                 {
                     if (downloadToResume != null)
                     {
-                        L.CallerWarning($"{url}: restarting download...");
-                    }
-                    else
-                    {
-                        L.CallerDebug($"{url}: downloading...");
+                        L.CallerWarning($"{url}: unable to resume -- restarting download...");
                     }
 
                     actualExpectedHash = expectedHash;
