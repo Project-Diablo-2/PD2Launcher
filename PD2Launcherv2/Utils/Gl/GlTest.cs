@@ -173,6 +173,8 @@ namespace PD2Launcherv2.Utils.Gl
 
                 stage = BestContextStage.InitialCtxCreation;
 
+                L.CallerDebug("Attempting to create the initial GL context...");
+
                 hCtx = OpenGLDll.wglCreateContext(hdc);
 
                 if (hCtx == IntPtr.Zero)
