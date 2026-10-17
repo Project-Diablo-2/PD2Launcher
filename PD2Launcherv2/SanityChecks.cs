@@ -1,10 +1,13 @@
-﻿using System.Text;
+﻿using System.Diagnostics;
+using System.IO;
+using System.Text;
 using System.Windows;
 using PD2Launcherv2.Utils;
 using PD2Launcherv2.Utils.Gl;
 using PD2Shared.Logging;
 using static PD2Shared.Logging.LoggingStatic;
 using PD2Shared.Utils;
+using PD2Shared.Utils.PInvoke;
 
 namespace PD2Launcherv2
 {
@@ -111,6 +114,84 @@ namespace PD2Launcherv2
             return true;
         }
 
+        private static bool CheckMsvc2019Runtime()
+        {
+            const string DllFileName = "msvcp140.dll";
+            Version DllMinVersion = new(14, 20); // Visual C++ 14.20 released alongside first Visual Studio 2019 (version 16.0.0)
+
+            IntPtr hModule = IntPtr.Zero;
+            Version? dllVersion = null;
+
+            try
+            {
+                hModule = Kernel32.LoadLibrary(DllFileName);
+
+                if (hModule == IntPtr.Zero)
+                {
+                    L.CallerWarning(Win32.GetLastErrorMessage(nameof(Kernel32.LoadLibrary), DllFileName));
+                }
+                else
+                {
+                    string? modulePath = Kernel32.GetModuleFileName(hModule);
+
+                    if (modulePath == null)
+                    {
+                        L.CallerWarning(Win32.GetLastErrorMessage(nameof(Kernel32.GetModuleFileName)));
+                    }
+                    else
+                    {
+                        try
+                        {
+                            var vi = FileVersionInfo.GetVersionInfo(modulePath);
+
+                            if (vi.ProductVersion == null)
+                            {
+                                L.CallerWarning($"{modulePath} contains no version information");
+                            }
+                            else
+                            {
+                                dllVersion = new Version(vi.ProductMajorPart, vi.ProductMinorPart, vi.ProductBuildPart, vi.ProductPrivatePart);
+                            }
+                        }
+                        catch (FileNotFoundException ex)
+                        {
+                            L.CallerWarning(ex, $"{nameof(FileVersionInfo.GetVersionInfo)}() failed for '{modulePath}'.");
+                        }
+                    }
+                }
+
+                L.CallerWrite(
+                    dllVersion == null ? Serilog.Events.LogEventLevel.Warning : Serilog.Events.LogEventLevel.Information,
+                    $"{DllFileName} version: {(dllVersion == null ? "Unknown" : dllVersion)}"
+                );
+            }
+            finally
+            {
+                if (hModule != IntPtr.Zero)
+                {
+                    if (!Kernel32.FreeLibrary(hModule))
+                    {
+                        L.CallerWarning(Win32.GetLastErrorMessage(nameof(Kernel32.FreeLibrary)));
+                    }
+                }
+            }
+
+            if (dllVersion >= DllMinVersion)
+            {
+                L.CallerInformation($"MSVC runtime meets version requirement of >= {DllMinVersion}");
+                return true;
+            }
+            else
+            {
+                L.CallerWarning($"MSVC runtime does not meet version requirement of >= {DllMinVersion}");
+            }
+
+            return FailurePrompt(
+                $"x86 MSVC 2019 runtime does not seem to be present.\n" +
+                "\n" +
+                "This will render PD2 unable to run.");
+        }
+
         private static bool TestGlContext()
         {
             using LoggedRoutine loggedRoutine = new();
@@ -129,6 +210,7 @@ namespace PD2Launcherv2
             {
                 () => CheckGameDirPathEncoding(),
                 () => CheckIfDirectoriesWritable(),
+                () => CheckMsvc2019Runtime(),
                 () => TestGlContext()
             };
 
