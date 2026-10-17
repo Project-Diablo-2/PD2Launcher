@@ -7,6 +7,10 @@ namespace PD2Shared.Utils
     {
         public const int ERROR_SUCCESS = 0;
 
+        // New, opt-in maximum path length, exceeding the historic 260 character limit
+        // (https://learn.microsoft.com/en-us/windows/win32/fileio/maximum-file-path-limitation)
+        public const int LongPathMaxPath = 32767;
+
         public static string GetLastErrorMessage(int error)
         {
             return GetLastException(error).Message;
