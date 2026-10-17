@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 using PD2Shared.Logging;
 using static PD2Shared.Logging.LoggingStatic;
 using PD2Shared.Utils;
+using PD2Shared.Utils.PInvoke;
 
 namespace PD2Launcherv2.Utils.Gl.Internal
 {
@@ -202,11 +203,11 @@ namespace PD2Launcherv2.Utils.Gl.Internal
 
                     if (_hOpenGLDll == IntPtr.Zero)
                     {
-                        _hOpenGLDll = DllImports.LoadLibrary(OpenGLDll.LibraryName);
+                        _hOpenGLDll = Kernel32.LoadLibrary(OpenGLDll.LibraryName);
 
                         if (_hOpenGLDll == IntPtr.Zero)
                         {
-                            throw Win32.GetLastException(nameof(DllImports.LoadLibrary), OpenGLDll.LibraryName);
+                            throw Win32.GetLastException(nameof(Kernel32.LoadLibrary), OpenGLDll.LibraryName);
                         }
                     }
 

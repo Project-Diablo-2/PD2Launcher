@@ -1,16 +1,11 @@
 ﻿using System.Runtime.InteropServices;
 using PD2Shared.Utils;
+using PD2Shared.Utils.PInvoke;
 
 namespace PD2Launcherv2.Utils.Gl.Internal
 {
     internal static class DllImports
     {
-        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
-        public static extern IntPtr GetModuleHandle([Optional] string? lpModuleName);
-
-        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
-        public static extern IntPtr LoadLibrary(string lpLibFileName);
-
         [DllImport("kernel32.dll", ExactSpelling = true, SetLastError = true, CharSet = CharSet.Ansi)]
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Globalization",
                 "CA2101:Specify marshaling for P/Invoke string arguments",
@@ -24,11 +19,11 @@ namespace PD2Launcherv2.Utils.Gl.Internal
             {
                 if (_hThisInstance == IntPtr.Zero)
                 {
-                    _hThisInstance = DllImports.GetModuleHandle(null);
+                    _hThisInstance = Kernel32.GetModuleHandle(null);
 
                     if (_hThisInstance == IntPtr.Zero)
                     {
-                        throw Win32.GetLastException(nameof(GetModuleHandle), (string?)null);
+                        throw Win32.GetLastException(nameof(Kernel32.GetModuleHandle), (string?)null);
                     }
                 }
 
