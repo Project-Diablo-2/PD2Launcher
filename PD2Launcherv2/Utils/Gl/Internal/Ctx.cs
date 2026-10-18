@@ -203,11 +203,12 @@ namespace PD2Launcherv2.Utils.Gl.Internal
 
                     if (_hOpenGLDll == IntPtr.Zero)
                     {
-                        _hOpenGLDll = Kernel32.LoadLibrary(OpenGLDll.LibraryName);
+                        // OpenGL DLL is expected to have been loaded at this point
+                        _hOpenGLDll = Kernel32.GetModuleHandle(OpenGLDll.LibraryName);
 
                         if (_hOpenGLDll == IntPtr.Zero)
                         {
-                            throw Win32.GetLastException(nameof(Kernel32.LoadLibrary), OpenGLDll.LibraryName);
+                            throw Win32.GetLastException(nameof(Kernel32.GetModuleHandle), OpenGLDll.LibraryName);
                         }
                     }
 
