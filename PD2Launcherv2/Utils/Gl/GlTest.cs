@@ -8,8 +8,8 @@ namespace PD2Launcherv2.Utils.Gl
 {
     public static class GlTest
     {
-        // Tracks GetBestContext() progress to determine if an occurring failure deems GL driver unusable
-        public enum BestContextStage
+        // Tracks CreateBestCtx() progress to determine if an occurring failure deems GL driver unusable
+        public enum BestCtxStage
         {
             None,
 
@@ -32,50 +32,45 @@ namespace PD2Launcherv2.Utils.Gl
         {
             public GlCtxInfo? GlCtxInfo { get; init; }
             public Exception? Exception { get; init; }
-            public BestContextStage StageReached { get; init; }
+            public BestCtxStage StageReached { get; init; }
         }
 
-        private static BestCtxInfo? _bestContext = null;
-        public static BestCtxInfo BestCtx
+        public static BestCtxInfo? BestCtx { get; private set; } = null;
+
+        public static BestCtxInfo CreateBestCtx()
         {
-            get
+            BestCtxStage stageReached = BestCtxStage.None;
+
+            try
             {
-                if (_bestContext == null)
+                BestCtx = new()
                 {
-                    BestContextStage stageReached = BestContextStage.None;
+                    GlCtxInfo = CreateBestGlCtx(out stageReached),
+                    Exception = null,
+                    StageReached = stageReached
+                };
 
-                    try
-                    {
-                        _bestContext = new()
-                        {
-                            GlCtxInfo = GetBestContext(out stageReached),
-                            Exception = null,
-                            StageReached = stageReached
-                        };
-
-                        if (stageReached < BestContextStage.GotBestCtx)
-                        {
-                            L.CallerWarning($"{nameof(GetBestContext)}() reached '{stageReached}'");
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        L.CallerWarning(ex, $"{nameof(GetBestContext)}() failed after reaching '{stageReached}'");
-
-                        _bestContext = new()
-                        {
-                            GlCtxInfo = null,
-                            Exception = ex,
-                            StageReached = stageReached
-                        };
-                    }
+                if (stageReached < BestCtxStage.GotBestCtx)
+                {
+                    L.CallerWarning($"{nameof(CreateBestGlCtx)}() reached '{stageReached}'");
                 }
-
-                return _bestContext;
             }
+            catch (Exception ex)
+            {
+                L.CallerWarning(ex, $"{nameof(CreateBestGlCtx)}() failed after reaching '{stageReached}'");
+
+                BestCtx = new()
+                {
+                    GlCtxInfo = null,
+                    Exception = ex,
+                    StageReached = stageReached
+                };
+            }
+
+            return BestCtx;
         }
 
-        private static GlCtxInfo GetBestContext(out BestContextStage stage)
+        private static GlCtxInfo CreateBestGlCtx(out BestCtxStage stage)
         {
             ushort classAtom = 0;
             IntPtr hwnd = IntPtr.Zero;
@@ -84,7 +79,7 @@ namespace PD2Launcherv2.Utils.Gl
 
             try
             {
-                stage = BestContextStage.ForceLoadingOpenGLDll;
+                stage = BestCtxStage.ForceLoadingOpenGLDll;
 
                 // Force load opengl.dll to trigger any of its static initializers.
                 // Otherwise, WinAPI-provided WGL might misbehave if this isn't done before setting pixel format.
@@ -92,7 +87,7 @@ namespace PD2Launcherv2.Utils.Gl
                 // This might as well throw an EntryPointNotFoundException exception here.
                 _ = OpenGLDll.wglGetCurrentContext();
 
-                stage = BestContextStage.WindowCreation;
+                stage = BestCtxStage.WindowCreation;
 
                 // Window creation loosely based on OpenGL.Net (https://github.com/luca-piccioni/OpenGL.Net/blob/master/OpenGL.Net/DeviceContextWGL.cs#L205)
 
@@ -135,7 +130,7 @@ namespace PD2Launcherv2.Utils.Gl
                     throw new Exception($"{nameof(DllImports.GetDC)}() failed.");
                 }
 
-                stage = BestContextStage.PixelFormatSelection;
+                stage = BestCtxStage.PixelFormatSelection;
 
                 // Pick the most sane pixel format (similar to D2GL) (https://github.com/bayaraa/d2gl/blob/master/d2gl/src/graphic/context.cpp#L37)
                 DllImports.PIXELFORMATDESCRIPTOR pfd = new()
@@ -171,7 +166,7 @@ namespace PD2Launcherv2.Utils.Gl
                     throw Win32.GetLastException(nameof(DllImports.SetPixelFormat));
                 }
 
-                stage = BestContextStage.InitialCtxCreation;
+                stage = BestCtxStage.InitialCtxCreation;
 
                 L.CallerDebug("Attempting to create the initial GL context...");
 
@@ -203,7 +198,7 @@ namespace PD2Launcherv2.Utils.Gl
                     L.CallerInformation($"> {line}");
                 }
 
-                stage = BestContextStage.GotInitialCtx;
+                stage = BestCtxStage.GotInitialCtx;
 
                 // Preemptively load all WGL functions explicitly.
                 // If this fails, it's impossible to create a better context and might as well bail.
@@ -227,7 +222,7 @@ namespace PD2Launcherv2.Utils.Gl
                     return initCtx.Info;
                 }
 
-                stage = BestContextStage.BestCtxCreation;
+                stage = BestCtxStage.BestCtxCreation;
 
                 // Test creating contexts D2GL would normally request (https://github.com/bayaraa/d2gl/blob/master/d2gl/src/graphic/context.cpp#L63)
                 foreach (Version version in new Version[] {
@@ -292,7 +287,7 @@ namespace PD2Launcherv2.Utils.Gl
                             continue;
                         }
 
-                        stage = BestContextStage.GotBestCtx;
+                        stage = BestCtxStage.GotBestCtx;
 
                         L.CallerInformation("Best GL context:");
                         foreach (var line in bestCtx.Info.ToLines())
@@ -330,7 +325,7 @@ namespace PD2Launcherv2.Utils.Gl
                 }
 
                 // At this point, the initial context is the best we got.
-                stage = BestContextStage.LeftWithInitialCtx;
+                stage = BestCtxStage.LeftWithInitialCtx;
 
                 L.CallerWarning("No better context could be created. Using initial GL context as best context.");
                 return initCtx.Info;
@@ -376,14 +371,14 @@ namespace PD2Launcherv2.Utils.Gl
 
     public static class BestContextStageEx
     {
-        public static bool IndicatesGlFailure(this GlTest.BestContextStage stage)
+        public static bool IndicatesGlFailure(this GlTest.BestCtxStage stage)
         {
             return false
-                || stage == GlTest.BestContextStage.ForceLoadingOpenGLDll
-                || stage == GlTest.BestContextStage.PixelFormatSelection
-                || stage == GlTest.BestContextStage.InitialCtxCreation
-                || stage == GlTest.BestContextStage.GotInitialCtx
-                || stage == GlTest.BestContextStage.BestCtxCreation;
+                || stage == GlTest.BestCtxStage.ForceLoadingOpenGLDll
+                || stage == GlTest.BestCtxStage.PixelFormatSelection
+                || stage == GlTest.BestCtxStage.InitialCtxCreation
+                || stage == GlTest.BestCtxStage.GotInitialCtx
+                || stage == GlTest.BestCtxStage.BestCtxCreation;
         }
     }
 }

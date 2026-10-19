@@ -196,8 +196,53 @@ namespace PD2Launcherv2
         {
             using LoggedRoutine loggedRoutine = new();
 
-            // Force creating GL contexts
-            _ = GlTest.BestCtx;
+            const string FlagFileName = "flag.SanityCheck.GL";
+            string FlagFilePath = Path.Combine(Env.GetLauncherFilesRootDirPath(), FlagFileName);
+
+            // Check for an existing flag file
+            if (File.Exists(FlagFilePath))
+            {
+                L.CallerWarning($"Found an existing flag file: '{FlagFilePath}'.");
+
+                if (MsgBox.Warn(
+                    "Launcher has detected to have previously crashed while attempting to test GL context creation.\n" +
+                    "\n" +
+                    "Would you like to rerun the test as normal or skip running it this time?",
+                    MessageBoxButton.YesNo,
+                    MessageBoxResult.Yes) == MessageBoxResult.Yes)
+                {
+                    L.CallerDebug("User agreed to rerun the test -- attempting to remove the flag file...");
+
+                    // Let this throw on failure
+                    File.Delete(FlagFilePath);
+                }
+                else
+                {
+                    L.CallerWarning("User declined to rerun the test -- leaving the flags file intact.");
+
+                    return true;
+                }
+            }
+
+            // Create a flag file. (Let these throw on failure).
+            {
+                L.CallerDebug($"Attempting to create a flag file: '{FlagFilePath}'...");
+
+                Env.EnsureDirectoryExists(FlagFilePath);
+
+                using var stream = new FileStream(
+                    FlagFilePath,
+                    FileMode.CreateNew,
+                    FileAccess.Write,
+                    FileShare.None,
+                    bufferSize: 0,
+                    FileOptions.WriteThrough);
+            }
+
+            GlTest.CreateBestCtx();
+
+            // ...and remove the flag file in the end. (This should not fail).
+            File.Delete(FlagFilePath);
 
             // This is too early to complain about any issues with GL.
             // Evaluate GlTest.BestCtx in light of current launcher options in MainWindow.

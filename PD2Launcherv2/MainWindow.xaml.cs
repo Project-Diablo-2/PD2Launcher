@@ -1309,7 +1309,11 @@ namespace PD2Launcherv2
 
             if (useD2GL)
             {
-                if (GlTest.BestCtx.GlCtxInfo == null && GlTest.BestCtx.StageReached.IndicatesGlFailure())
+                if (GlTest.BestCtx == null)
+                {
+                    MsgBox.Warn("Selected D2GL renderer wrapper might not work as GL context creation test has not been performed.");
+                }
+                else if (GlTest.BestCtx.GlCtxInfo == null && GlTest.BestCtx.StageReached.IndicatesGlFailure())
                 {
                     MsgBox.Exception(
                         GlTest.BestCtx.Exception,
@@ -1336,7 +1340,11 @@ namespace PD2Launcherv2
             }
             else
             {
-                if (GlTest.BestCtx.GlCtxInfo == null && GlTest.BestCtx.StageReached.IndicatesGlFailure())
+                if (GlTest.BestCtx == null)
+                {
+                    MsgBox.Warn("Selected cnc-ddraw renderer wrapper (set to OpenGL renderer) might not work as GL context creation test has not been performed.");
+                }
+                else if (GlTest.BestCtx.GlCtxInfo == null && GlTest.BestCtx.StageReached.IndicatesGlFailure())
                 {
                     MsgBox.Exception(
                         GlTest.BestCtx.Exception,
