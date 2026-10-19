@@ -1513,6 +1513,29 @@ namespace PD2Launcherv2
                         try
                         {
                             Wine.ApplyWineConfiguration();
+
+                            if (MsgBox.Info(
+                                "Configuration applied successfully.\n" +
+                                "\n" +
+                                "Would you like to review the changes made?",
+                                MessageBoxButton.YesNo,
+                                MessageBoxResult.No) == MessageBoxResult.Yes)
+                            {
+                                try
+                                {
+                                    Wine.RunRegedit();
+                                }
+                                catch (Wine.WineException ex)
+                                {
+                                    L.CallerError(ex.InnerException, ex.Message);
+                                    MsgBox.Exception(ex, "Failed to set up regedit:");
+                                }
+                                catch (Exception ex)
+                                {
+                                    L.CallerError(ex, "Failed to set up regedit.");
+                                    MsgBox.Exception(ex, "Failed to set up regedit:");
+                                }
+                            }
                         }
                         catch (Wine.WineException ex)
                         {
