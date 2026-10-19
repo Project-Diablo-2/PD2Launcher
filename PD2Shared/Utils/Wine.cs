@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Microsoft.Win32;
 using PD2Shared.Logging;
@@ -30,6 +31,8 @@ namespace PD2Shared.Utils
         const string HkcuExeKeyPath = @"Software\Wine\AppDefaults\Game.exe";
         const string HkcuDllOverridesKeyPath = HkcuExeKeyPath + @"\DllOverrides";
         const string HkcuX11KeyPath = HkcuExeKeyPath + @"\X11 Driver";
+
+        const string HkcuRegeditPath = @"Software\Microsoft\Windows\CurrentVersion\Applets\Regedit";
 
         // MSVC2019 runtime
         private static readonly string[] Msvc2019Libs = {
@@ -197,6 +200,35 @@ namespace PD2Shared.Utils
         public static void RemoveWineConfiguration()
         {
             Registry.CurrentUser.DeleteSubKeyTree(HkcuExeKeyPath, throwOnMissingSubKey: false);
+        }
+
+        private static void RunRegedit(string keyPathToNavigateTo)
+        {
+            // Alter regedit's LastKey value to force navigation to the given keyPathToNavigateTo
+            using (var key = Registry.CurrentUser.CreateSubKey(HkcuRegeditPath, writable: true))
+            {
+                if (key == null)
+                {
+                    throw new WineException($"Failed to create registry key: '{Registry.CurrentUser}\\{HkcuRegeditPath}'");
+                }
+
+                key.SetValue("LastKey", keyPathToNavigateTo, RegistryValueKind.String);
+            }
+
+            using Process? _ = Process.Start(new ProcessStartInfo
+            {
+                FileName = "regedit.exe",
+                WindowStyle = ProcessWindowStyle.Maximized,
+                // Run via shell to prevent throwing a Win32Exception with 'The requested operation requires elevation'.
+                // This really only matters on Windows, but is kept for overall compatibility.
+                UseShellExecute = true,
+            });
+        }
+
+        public static void RunRegedit()
+        {
+            // Concatenate the path instead of querying the RegistryKey and serializing that
+            RunRegedit($"{Registry.CurrentUser}\\{HkcuExeKeyPath}");
         }
     }
 }
