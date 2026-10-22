@@ -1332,7 +1332,7 @@ namespace PD2Shared.GameFileUpdate
             {
                 var totalBytesToRestoreStr = totalBytesToRestore == null ? "?" : Formatting.FormatSizeInMiB(totalBytesToRestore.Value);
 
-                L.CallerInformation($"Restoring {totalFilesToRestore} files ({totalBytesToRestoreStr} total)...");
+                L.CallerInformation($"Restoring {totalFilesToRestore} file(s) ({totalBytesToRestoreStr} total)...");
             }
 
             progress?.Report(new PV()
@@ -1923,20 +1923,12 @@ namespace PD2Shared.GameFileUpdate
 
             // Restore files
 
+            // Assume all filesToRestore are restorable as any errors should have resulted in exceptions being thrown by now
             if (filesToRestore.Any())
             {
-                var restorableFiles = filesToRestore
-                    .Where(f => f.DownloadFileValidated || f.DownloadResult?.IsSuccess == true)
-                    .ToArray();
+                stageTextProgress?.Report("Restoring...");
 
-                L.CallerInformation($"Restorable files: {restorableFiles.Length}/{filesToRestore.Length}");
-
-                if (restorableFiles.Any())
-                {
-                    stageTextProgress?.Report("Restoring...");
-
-                    await RestoreFilesAsync(restorableFiles, parallelOptions.CancellationToken, progress).ConfigureAwait(false);
-                }
+                await RestoreFilesAsync(filesToRestore, parallelOptions.CancellationToken, progress).ConfigureAwait(false);
             }
         }
     }
