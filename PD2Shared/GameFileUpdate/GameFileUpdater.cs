@@ -1809,7 +1809,7 @@ namespace PD2Shared.GameFileUpdate
 
             // Attempt to save the manifest at this stage.
             //
-            // This can succeed when the files were already there (and have been validated) but the manifest was missing.
+            // This could produce a complete manifest if the files were already there (and have been validated) but only the manifest was missing.
             //
             // (Disallow cancelling this)
             await SaveManifest(manifestPath, ctx.manifestEntries, ct: default).ConfigureAwait(false);
@@ -1850,7 +1850,7 @@ namespace PD2Shared.GameFileUpdate
 
                     // Attempt to save the manifest at this stage.
                     //
-                    // This should succeed as all missing Sizes should have been just retrieved.
+                    // This could at least update the missing Sizes which should have just been retrieved.
                     //
                     // (Disallow cancelling this)
                     await SaveManifest(manifestPath, ctx.manifestEntries, ct: default).ConfigureAwait(false);
@@ -1892,8 +1892,7 @@ namespace PD2Shared.GameFileUpdate
 
             // Attempt to try to save the manifest as soon as possible after downloading.
             //
-            // This should succeed in case Sizes could only be determined by downloading files in full.
-            // However, if any of the files fail to download, the manifest will never get saved.
+            // This could update the hashes as well any missing Sizes assuming these could only be determined by downloading the files in full.
             //
             // Due to variety of possible failures in DownloadFilesAsync(), attempt to save the manifest safely, so that any failure in doing so
             // won't overshadow exceptions thrown by DownloadFilesAsync().
