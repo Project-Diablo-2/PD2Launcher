@@ -324,7 +324,7 @@ namespace PD2Shared.GameFileUpdate
             {
                 res = await SaveManifest(path, manifestEntries, ct).ConfigureAwait(false);
             }
-            catch( Exception ex)
+            catch (Exception ex)
             {
                 return Tuple.Create(res, (Exception?)ex);
             }
@@ -472,7 +472,7 @@ namespace PD2Shared.GameFileUpdate
                         // Partial download cannot be smaller than declared in PartialDownload
                         L.CallerWarning($"{path}: partial size mismatch: {size.Value} > {actualSize.Value} (actual)");
 
-                        return Tuple.Create(false, actualSize, (Xxh3Hash ?)null);
+                        return Tuple.Create(false, actualSize, (Xxh3Hash?)null);
                     }
                     else
                     {
@@ -489,7 +489,7 @@ namespace PD2Shared.GameFileUpdate
                         // If the file exists and has non-zero size -- that's good enough
                         L.CallerDebug($"{path}: loosely validated: {actualSize.Value} (actual)");
 
-                        return Tuple.Create(true, actualSize, (Xxh3Hash ?)null);
+                        return Tuple.Create(true, actualSize, (Xxh3Hash?)null);
                     }
                     else
                     {
