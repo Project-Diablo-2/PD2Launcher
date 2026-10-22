@@ -160,7 +160,7 @@ namespace PD2Launcherv2
             // TEST
 
 #if DEBUG
-            CheckForUpdates();
+            //CheckForUpdates();
 #else
                 CheckForUpdates();
 #endif

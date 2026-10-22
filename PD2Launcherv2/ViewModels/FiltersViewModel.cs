@@ -39,7 +39,7 @@ namespace PD2Launcherv2.ViewModels
             }
         }
 
-        private List<FilterAuthor> _authorsList;
+        private List<FilterAuthor> _authorsList = new();
         public List<FilterAuthor> AuthorsList
         {
             get => _authorsList;
@@ -47,14 +47,14 @@ namespace PD2Launcherv2.ViewModels
             {
                 if (_authorsList != value)
                 {
-                    _authorsList = value;
+                    _authorsList = value ?? new List<FilterAuthor>();
                     OnPropertyChanged();
                 }
             }
         }
 
-        private FilterAuthor _selectedAuthor;
-        public FilterAuthor SelectedAuthor
+        private FilterAuthor? _selectedAuthor;
+        public FilterAuthor? SelectedAuthor
         {
             get => _selectedAuthor;
             set
@@ -63,25 +63,33 @@ namespace PD2Launcherv2.ViewModels
                 {
                     _selectedAuthor = value;
                     OnPropertyChanged();
-                    FetchDataFromAuthorUrl(value.Url);
+
+                    // Never leave filters from the previous author visible.
+                    SelectedFilter = null;
+                    FiltersList = new List<FilterFile>();
+
+                    if (value != null)
+                    {
+                        _ = FetchDataFromAuthorUrlAsync(value);
+                    }
                 }
             }
         }
 
-        private List<FilterFile> _filtersList;
+        private List<FilterFile> _filtersList = new();
         public List<FilterFile> FiltersList
         {
             get => _filtersList;
             set
             {
-                _filtersList = value;
+                _filtersList = value ?? new List<FilterFile>();
                 OnPropertyChanged();
                 SelectStoredFilter();
             }
         }
 
-        private FilterFile _selectedFilter;
-        public FilterFile SelectedFilter
+        private FilterFile? _selectedFilter;
+        public FilterFile? SelectedFilter
         {
             get => _selectedFilter;
             set
@@ -248,6 +256,16 @@ namespace PD2Launcherv2.ViewModels
                 return;
             }
 
+            // Do not auto-select a similarly named filter from a different author.
+            if (storedSelection.selectedAuthor == null ||
+                !string.Equals(
+                    storedSelection.selectedAuthor.Author,
+                    SelectedAuthor.Author,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
             if (!string.IsNullOrWhiteSpace(storedSelection.selectedFilterId))
             {
                 SelectedFilter = FiltersList.FirstOrDefault(f =>
@@ -267,18 +285,63 @@ namespace PD2Launcherv2.ViewModels
             }
         }
 
-        private async void FetchDataFromAuthorUrl(string url)
+        private async Task FetchDataFromAuthorUrlAsync(FilterAuthor author)
         {
-            if (SelectedAuthor.Name == "Local Filter")
+            if (string.Equals(
+                author.Name,
+                "Local Filter",
+                StringComparison.OrdinalIgnoreCase))
             {
                 LoadLocalFilters();
                 return;
             }
 
-            var filterContents = await _filterHelpers.FetchFilterContentsAsync(url);
-            if (filterContents != null)
+            if (string.IsNullOrWhiteSpace(author.Url) ||
+                string.Equals(author.Url, "null", StringComparison.OrdinalIgnoreCase))
             {
+                FiltersList = new List<FilterFile>();
+                MessageBox.Show(
+                    "This filter author does not have a valid repository URL.",
+                    "Filter Load Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+                return;
+            }
+
+            try
+            {
+                var filterContents =
+                    await _filterHelpers.FetchFilterContentsAsync(author.Url);
+
+                // If the user picked another author while this request was running,
+                // do not let the old request overwrite the new selection.
+                if (SelectedAuthor != author)
+                {
+                    return;
+                }
+
+                if (filterContents == null)
+                {
+                    FiltersList = new List<FilterFile>();
+                    MessageBox.Show(
+                        "The filter list could not be loaded. This can be caused by a temporary GitHub/API failure or rate limit. Please try again.",
+                        "Filter Load Error",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
+                    return;
+                }
+
                 FiltersList = filterContents;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to load filters for {author.Name}: {ex.Message}");
+                FiltersList = new List<FilterFile>();
+                MessageBox.Show(
+                    $"The filter list could not be loaded: {ex.Message}",
+                    "Filter Load Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
             }
         }
 
@@ -286,24 +349,28 @@ namespace PD2Launcherv2.ViewModels
         {
             Debug.WriteLine("start FetchAndStoreFilterAuthorsAsync");
             await _filterHelpers.FetchAndStoreFilterAuthorsAsync();
-            LoadAuthorsFromStorage();
+
             var storedData = _localStorage.LoadSection<Pd2AuthorList>(
                 StorageKey.Pd2AuthorList);
+
+            var updatedList = new List<FilterAuthor>
+            {
+                new FilterAuthor
+                {
+                    Name = "Local Filter",
+                    Url = "local",
+                    Author = "Local Filter"
+                }
+            };
+
+            // The helper intentionally leaves the previous cached author list in
+            // storage when the network request fails, so use it as a fallback.
             if (storedData?.StorageAuthorList != null)
             {
-                var updatedList = new List<FilterAuthor>
-                {
-                    new FilterAuthor
-                    {
-                        Name = "Local Filter",
-                        Url = "local",
-                        Author = "Local Filter"
-                    }
-                };
-
                 updatedList.AddRange(storedData.StorageAuthorList);
-                AuthorsList = updatedList;
             }
+
+            AuthorsList = updatedList;
             Debug.WriteLine("end FetchAndStoreFilterAuthorsAsync");
         }
 
@@ -338,6 +405,10 @@ namespace PD2Launcherv2.ViewModels
                     .ToList();
 
                 FiltersList = filterFiles;
+            }
+            else
+            {
+                FiltersList = new List<FilterFile>();
             }
         }
 
@@ -443,6 +514,11 @@ namespace PD2Launcherv2.ViewModels
                 else
                 {
                     Debug.WriteLine("Failed to apply filter.");
+                    MessageBox.Show(
+                        "The selected filter could not be downloaded or applied. Please try again.",
+                        "Filter Apply Error",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Error);
                 }
             }
         }
