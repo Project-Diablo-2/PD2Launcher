@@ -1,38 +1,57 @@
-﻿
-using PD2Shared.Interfaces;
+﻿using PD2Shared.Interfaces;
 using PD2Shared.Models;
+using PD2Shared.Logging;
+using static PD2Shared.Logging.LoggingStatic;
+using PD2Shared.Utils;
 using System.Diagnostics;
-using System.IO;
-using System.Windows;
+using System.Runtime.InteropServices;
 
 namespace PD2Shared.Helpers
 {
     public class LaunchGameHelpers : ILaunchGameHelpers
     {
-        public void LaunchGame(ILocalStorage localStorage)
+        private static class DllImports
         {
-            var fileUpdateModel = localStorage.LoadSection<FileUpdateModel>(PD2Shared.Models.StorageKey.FileUpdateModel);
+            [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+            public static extern IntPtr FindWindow([Optional] string? className, [Optional] string? windowName);
+        }
 
-            string diabloIIExePath = Path.Combine(Directory.GetCurrentDirectory(), "Game.exe");
-            if (!File.Exists(diabloIIExePath))
+        public static bool IsGameRunning
+        {
+            get
             {
-                Debug.WriteLine("Game.exe not found.");
-                return;
+                // This is basically the same check the actual game uses
+                return DllImports.FindWindow(className: "Diablo II", windowName: null) != IntPtr.Zero;
             }
+        }
 
-            LauncherArgs launcherArgs = localStorage.LoadSection<LauncherArgs>(PD2Shared.Models.StorageKey.LauncherArgs);
+        public Process LaunchGame(ILocalStorage localStorage, EventHandler? exitedEventHandler = null)
+        {
+            LauncherArgs launcherArgs = localStorage.LoadSection<LauncherArgs>(StorageKey.LauncherArgs);
 
-            string args = ConstructLaunchArguments(launcherArgs);
-
-            // Launch the game with the specified arguments.
-            var startInfo = new ProcessStartInfo
+            Process process = new()
             {
-                FileName = diabloIIExePath,
-                Arguments = args,
-                WorkingDirectory = Path.GetDirectoryName(diabloIIExePath)
+                EnableRaisingEvents = exitedEventHandler != null,
+                StartInfo = new()
+                {
+                    WorkingDirectory = Env.GetCwd(),
+                    FileName = Path.Combine(Env.GetCwd(), "Game.exe"),
+                    Arguments = ConstructLaunchArguments(launcherArgs),
+                    // Run via shell to prevent throwing a Win32Exception with 'The requested operation requires elevation'
+                    // whenever the executable is marked to run as elevated.
+                    UseShellExecute = true
+                }
             };
 
-            Process.Start(startInfo);
+            if (exitedEventHandler != null)
+            {
+                process.Exited += exitedEventHandler;
+            }
+
+            L.CallerInformation($"Launching: '\"{process.StartInfo.FileName}\" {process.StartInfo.Arguments}'...");
+
+            process.Start();
+            return process;
         }
 
         private string ConstructLaunchArguments(LauncherArgs launcherArgs)

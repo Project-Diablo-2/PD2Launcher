@@ -10,6 +10,13 @@ using System.IO;
 using System.Net.Http;
 using System.Text;
 using System.Windows;
+using PD2Launcherv2.Utils;
+using PD2Shared.GameFileUpdate;
+using PD2Shared.Logging;
+using static PD2Shared.Logging.LoggingStatic;
+using PD2Shared.Utils;
+
+[assembly: System.Runtime.CompilerServices.RuntimeCompatibilityAttribute(WrapNonExceptionThrows = true)]
 
 namespace PD2Launcherv2
 {
@@ -19,6 +26,8 @@ namespace PD2Launcherv2
     /// </summary>
     public partial class App : Application
     {
+        private readonly Stopwatch _bootStopwatch = Stopwatch.StartNew();
+
         /// <summary>
         /// Holds the service provider for dependency injection.
         /// </summary>
@@ -58,7 +67,7 @@ namespace PD2Launcherv2
             services.AddSingleton<LaunchGameHelpers>();
             services.AddSingleton<NewsHelpers>();
             services.AddSingleton<DDrawHelpers>();
-            services.AddSingleton<GameFileUpdateHelpers>();
+            services.AddSingleton<GameFileUpdater>();
             services.AddSingleton<FileUpdateHelpers>(provider =>
             new FileUpdateHelpers( provider.GetRequiredService<HttpClient>()));
             services.AddTransient<OptionsViewModel>();
@@ -98,7 +107,7 @@ namespace PD2Launcherv2
 
                 try
                 {
-                    if (Process.GetProcessesByName("Game").Any())
+                    if (LaunchGameHelpers.IsGameRunning)
                     {
                         Debug.WriteLine("Game already running.");
                         return;
@@ -110,8 +119,8 @@ namespace PD2Launcherv2
                         await filterHelpers.CheckAndUpdateFilterAsync(selected);
                     }
 
-                    var launcherArgs = localStorage.LoadSection<LauncherArgs>(StorageKey.LauncherArgs);
-                    if (!launcherArgs.disableAutoUpdate)
+                    var launcherOptions = localStorage.LoadSection<LauncherOptions>(StorageKey.LauncherOptions);
+                    if (!launcherOptions.DisableAutoUpdate)
                     {
                         try
                         {
@@ -136,23 +145,107 @@ namespace PD2Launcherv2
                 return;
             }
 
+            // This is a bit meh, but let's keep the convention and make this case-insensitive
+            var createConsole = e.Args.Any(arg => arg.Equals("--console", StringComparison.OrdinalIgnoreCase));
+
+            // This is not expected to throw
+            Logging.SetUp(createConsole);
+
+            if (Wine.IsRunningUnderWine)
+            {
+                if (Wine.Version != null)
+                {
+                    string wineVersionStr = Wine.Version.ToString();
+
+                    if (Wine.BuildId != null)
+                    {
+                        wineVersionStr += $" ({Wine.BuildId})";
+                    }
+
+                    if (Wine.OsName != null)
+                    {
+                        wineVersionStr += $" on {Wine.OsName}";
+
+                        if (Wine.OsRelease != null)
+                        {
+                            wineVersionStr += $" {Wine.OsRelease}";
+                        }
+                    }
+
+                    L.CallerInformation($"Running under Wine {wineVersionStr}");
+                }
+                else
+                {
+                    L.CallerInformation($"Running under an undetermined Wine version");
+                }
+            }
+
+            L.CallerInformation($"Using up to {Environment.ProcessorCount} concurrent task(s)");
+
+            if (!SanityChecks.Run())
+            {
+                L.CallerInformation($"Sanity checks failed and user declined to continue.");
+
+                this.Shutdown(1);
+                return;
+            }
+
             // Normal UI mode
             base.OnStartup(e);
             var mainWindow = _serviceProvider.GetService<MainWindow>();
+
+            if (mainWindow != null)
+            {
+                mainWindow.ContentRendered += MainWindow_ContentRendered;
+            }
+
             mainWindow?.Show();
+        }
+
+        private void MainWindow_ContentRendered(object? sender, EventArgs e)
+        {
+            ((MainWindow)sender!).ContentRendered -= MainWindow_ContentRendered;
+
+            L.CallerDebug($"Time till {nameof(MainWindow)} rendered: {_bootStopwatch.Elapsed}.");
+        }
+
+        protected override void OnExit(ExitEventArgs e)
+        {
+            Logging.ShutDown(e.ApplicationExitCode);
+
+            base.OnExit(e);
         }
 
         // Handle non-UI thread exceptions
         private void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
         {
-            LogException(e.ExceptionObject as Exception);
+            // Blindly cast the object to Exception thanks to RuntimeCompatibilityAttribute (https://learn.microsoft.com/en-us/dotnet/api/system.unhandledexceptioneventargs.exceptionobject#remarks)
+            var ex = (Exception)e.ExceptionObject;
+
+            L.Fatal(ex, "Unhandled exception");
+
+            this.Dispatcher.Invoke(() =>
+            {
+                MsgBox.Exception(ex, "Unhandled exception:");
+
+                // Unlike DispatcherUnhandledException, WER will still kick in.
+                // However, due to reliance on task asynchronous programming model, it is very unlikely that this handler will ever be used.
+                this.Shutdown(1);
+            });
         }
 
         // Handle UI thread exceptions
         private void App_DispatcherUnhandledException(object sender, System.Windows.Threading.DispatcherUnhandledExceptionEventArgs e)
         {
-            LogException(e.Exception);
+            var ex = e.Exception;
+
+            L.Fatal(ex, "Unhandled exception");
+            MsgBox.Exception(ex, "Unhandled exception:");
+
             e.Handled = true; // Prevent application from crashing
+
+            // ...yet shut it down on our own terms now, knowing that we have prevented Windows Error Reporting from kicking in.
+            this.Shutdown(1);
         }
 
         private void CleanUpTempStorageFiles()
@@ -173,48 +266,6 @@ namespace PD2Launcherv2
                     Debug.WriteLine($"Failed to delete temp file: {ex.Message}");
                 }
             }
-        }
-
-        private void LogException(Exception ex)
-        {
-            if (ex == null) return;
-
-            string logPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory);
-
-            string logFile = Path.Combine(logPath, $"pd2launcher_error__{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.txt");
-
-            // Use StackTrace to get more detailed info about where the exception occurred
-            var stackTrace = new StackTrace(ex, true);
-            var frame = stackTrace.GetFrames()?.FirstOrDefault();
-            var method = frame?.GetMethod();
-            var declaringType = method?.DeclaringType;
-            var methodName = method?.Name;
-
-            // Prepare the log entry
-            var sb = new StringBuilder();
-            sb.AppendLine("==============================================================================");
-            sb.AppendLine($"Timestamp: {DateTime.Now}");
-            sb.AppendLine("Exception Class:");
-            sb.AppendLine(declaringType?.FullName ?? "N/A");
-            sb.AppendLine("Exception Method:");
-            sb.AppendLine($"{methodName ?? "N/A"}");
-            sb.AppendLine("Exception Message:");
-            sb.AppendLine(ex.Message);
-            sb.AppendLine("Stack Trace:");
-            sb.AppendLine(ex.StackTrace);
-
-            // Include inner exception details if available
-            if (ex.InnerException != null)
-            {
-                sb.AppendLine("Inner Exception Message:");
-                sb.AppendLine(ex.InnerException.Message);
-                sb.AppendLine("Inner Exception Stack Trace:");
-                sb.AppendLine(ex.InnerException.StackTrace);
-            }
-            sb.AppendLine("==============================================================================");
-
-            // Append the log entry to the file
-            File.AppendAllText(logFile, sb.ToString());
         }
     }
 }

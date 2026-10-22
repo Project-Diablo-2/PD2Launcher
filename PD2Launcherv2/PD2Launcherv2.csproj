@@ -23,8 +23,16 @@
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DebugType>full</DebugType>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <DebugType>embedded</DebugType>
+  </PropertyGroup>
+
   <ItemGroup>
-    <None Remove="Resources\Fonts\exocet-blizzard-heavy.otf" />
+    <None Remove="Resources\Fonts\exocet-blizzard-heavy.ttf" />
     <None Remove="Resources\Fonts\exocet-blizzard-light.ttf" />
     <None Remove="Resources\Fonts\exocet-blizzard-medium.ttf" />
     <None Remove="Resources\Icons\icon.ico" />
@@ -32,42 +40,43 @@
     <None Remove="Resources\Images\bg1.jpg" />
     <None Remove="Resources\Images\bg2.jpg" />
     <None Remove="Resources\Images\bg_plain.jpg" />
+    <None Remove="Resources\Images\blank.png" />
+    <None Remove="Resources\Images\blank_disabled.png" />
+    <None Remove="Resources\Images\blank_pressed.png" />
+    <None Remove="Resources\Images\blank_split_bottom.png" />
+    <None Remove="Resources\Images\blank_split_bottom_disabled.png" />
+    <None Remove="Resources\Images\blank_split_bottom_pressed.png" />
+    <None Remove="Resources\Images\blank_split_top.png" />
+    <None Remove="Resources\Images\blank_split_top_disabled.png" />
+    <None Remove="Resources\Images\blank_split_top_pressed.png" />
     <None Remove="Resources\Images\btn_beta.jpg" />
     <None Remove="Resources\Images\btn_live.jpg" />
     <None Remove="Resources\Images\btn_more.jpg" />
     <None Remove="Resources\Images\btn_more_pressed.jpg" />
     <None Remove="Resources\Images\btn_no_updates3.jpg" />
     <None Remove="Resources\Images\btn_switch.jpg" />
+    <None Remove="Resources\Images\btn_switch_disabled.png" />
     <None Remove="Resources\Images\btn_switch_pressed.jpg" />
     <None Remove="Resources\Images\checkbox_checked.png" />
     <None Remove="Resources\Images\checkbox_unchecked.png" />
     <None Remove="Resources\Images\close.jpg" />
+    <None Remove="Resources\Images\close_disabled.png" />
     <None Remove="Resources\Images\close_pressed.jpg" />
     <None Remove="Resources\Images\custom_notif.jpg" />
-    <None Remove="Resources\Images\donate.jpg" />
-    <None Remove="Resources\Images\donate_pressed.jpg" />
     <None Remove="Resources\Images\empty_button.png" />
     <None Remove="Resources\Images\logo.gif" />
-    <None Remove="Resources\Images\loot.jpg" />
-    <None Remove="Resources\Images\loot_pressed.jpg" />
     <None Remove="Resources\Images\minimize.jpg" />
     <None Remove="Resources\Images\minimize_pressed.jpg" />
-    <None Remove="Resources\Images\options.jpg" />
-    <None Remove="Resources\Images\options_pressed.jpg" />
-    <None Remove="Resources\Images\play.jpg" />
-    <None Remove="Resources\Images\play_pressed.jpg" />
+    <None Remove="Resources\Images\offline24.png" />
     <None Remove="Resources\Images\thin_next.jpg" />
     <None Remove="Resources\Images\thin_prev.jpg" />
-    <None Remove="Resources\Images\updating_disabled.jpg" />
+    <None Remove="Resources\Images\winelogo16.png" />
+    <None Remove="Resources\Images\winelogo32.png" />
   </ItemGroup>
 
   <ItemGroup>
     <Resource Include="Resources\Images\btn_no_updates3.jpg" />
     <Resource Include="Resources\Images\custom_notif.jpg" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Content Include="Resources\Icons\icon.ico" />
   </ItemGroup>
 
   <ItemGroup>
@@ -82,7 +91,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Resource Include="Resources\Fonts\exocet-blizzard-heavy.otf" />
+    <Resource Include="Resources\Fonts\exocet-blizzard-heavy.ttf" />
     <Resource Include="Resources\Fonts\exocet-blizzard-light.ttf" />
     <Resource Include="Resources\Fonts\exocet-blizzard-medium.ttf" />
     <Resource Include="Resources\Icons\icon.ico" />
@@ -90,35 +99,36 @@
     <Resource Include="Resources\Images\bg1.jpg" />
     <Resource Include="Resources\Images\bg2.jpg" />
     <Resource Include="Resources\Images\bg_plain.jpg" />
+    <Resource Include="Resources\Images\blank.png" />
+    <Resource Include="Resources\Images\blank_disabled.png" />
+    <Resource Include="Resources\Images\blank_pressed.png" />
+    <Resource Include="Resources\Images\blank_split_bottom.png" />
+    <Resource Include="Resources\Images\blank_split_bottom_disabled.png" />
+    <Resource Include="Resources\Images\blank_split_bottom_pressed.png" />
+    <Resource Include="Resources\Images\blank_split_top.png" />
+    <Resource Include="Resources\Images\blank_split_top_disabled.png" />
+    <Resource Include="Resources\Images\blank_split_top_pressed.png" />
     <Resource Include="Resources\Images\btn_beta.jpg" />
     <Resource Include="Resources\Images\btn_live.jpg" />
     <Resource Include="Resources\Images\btn_more.jpg" />
     <Resource Include="Resources\Images\btn_more_pressed.jpg" />
     <Resource Include="Resources\Images\btn_switch.jpg" />
+    <Resource Include="Resources\Images\btn_switch_disabled.png" />
     <Resource Include="Resources\Images\btn_switch_pressed.jpg" />
     <Resource Include="Resources\Images\checkbox_checked.png" />
     <Resource Include="Resources\Images\checkbox_unchecked.png" />
     <Resource Include="Resources\Images\close.jpg" />
+    <Resource Include="Resources\Images\close_disabled.png" />
     <Resource Include="Resources\Images\close_pressed.jpg" />
-    <Resource Include="Resources\Images\donate.jpg" />
-    <Resource Include="Resources\Images\donate_pressed.jpg" />
     <Resource Include="Resources\Images\empty_button.png" />
     <Resource Include="Resources\Images\logo.gif" />
-    <Resource Include="Resources\Images\loot.jpg" />
-    <Resource Include="Resources\Images\loot_pressed.jpg" />
     <Resource Include="Resources\Images\minimize.jpg" />
     <Resource Include="Resources\Images\minimize_pressed.jpg" />
-    <Resource Include="Resources\Images\options.jpg" />
-    <Resource Include="Resources\Images\options_pressed.jpg" />
-    <Resource Include="Resources\Images\play.jpg" />
-    <Resource Include="Resources\Images\play_pressed.jpg" />
+    <Resource Include="Resources\Images\offline24.png" />
     <Resource Include="Resources\Images\thin_next.jpg" />
     <Resource Include="Resources\Images\thin_prev.jpg" />
-    <Resource Include="Resources\Images\updating_disabled.jpg" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Services\" />
+    <Resource Include="Resources\Images\winelogo16.png" />
+    <Resource Include="Resources\Images\winelogo32.png" />
   </ItemGroup>
 
   <ItemGroup>

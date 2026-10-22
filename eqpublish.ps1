@@ -4,27 +4,27 @@ $buildFailed = $false
 Push-Location $PSScriptRoot
 
 try {
-    $mainWindowPath = Join-Path `
+    $constantsPath = Join-Path `
         $PSScriptRoot `
-        "PD2Launcherv2\MainWindow.xaml"
+        "PD2Shared\Constants.cs"
 
-    if (-not (Test-Path $mainWindowPath -PathType Leaf)) {
-        throw "Could not find MainWindow.xaml at: $mainWindowPath"
+    if (-not (Test-Path $constantsPath -PathType Leaf)) {
+        throw "Could not find Constants.cs at: $constantsPath"
     }
 
-    $xamlContent = Get-Content $mainWindowPath -Raw
+    $csContent = Get-Content $constantsPath -Raw
 
     # Accepts versions such as:
     # v 2.14.1
     # v 2.14.AWS1
     # v 2.14.SUCCESS
     $versionMatch = [regex]::Match(
-        $xamlContent,
-        'Text="v\s*([^"]+)"'
+        $csContent,
+        'VersionString\s*=\s*"([^"]+)"'
     )
 
     if (-not $versionMatch.Success) {
-        throw "Could not find version text in MainWindow.xaml"
+        throw "Could not find version text in Constants.cs"
     }
 
     $version = $versionMatch.Groups[1].Value.Trim()

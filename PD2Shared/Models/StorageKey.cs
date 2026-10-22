@@ -4,6 +4,7 @@ namespace PD2Shared.Models
     public enum StorageKey
     {
         LauncherArgs,
+        LauncherOptions,
         DdrawOptions,
         FileUpdateModel,
         Pd2AuthorList,

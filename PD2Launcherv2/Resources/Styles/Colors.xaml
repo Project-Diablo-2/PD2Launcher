@@ -5,10 +5,16 @@
     <Color x:Key="Gold">#FFA78E65</Color>
     <Color x:Key="GoldLighter">#FFB59E76</Color>
     <Color x:Key="GoldDarker">#FF947A56</Color>
+    <Color x:Key="Red">#FFA7656D</Color>
+    <Color x:Key="RedLighter">#FFB5767D</Color>
+    <Color x:Key="RedDarker">#FF945661</Color>
     <Color x:Key="SHAKO">#007759</Color>
     <SolidColorBrush x:Key="GoldBrush" Color="{StaticResource Gold}"/>
     <SolidColorBrush x:Key="GoldLighterBrush" Color="{StaticResource GoldLighter}"/>
     <SolidColorBrush x:Key="GoldDarkerBrush" Color="{StaticResource GoldDarker}"/>
+    <SolidColorBrush x:Key="RedBrush" Color="{StaticResource Red}"/>
+    <SolidColorBrush x:Key="RedLighterBrush" Color="{StaticResource RedLighter}"/>
+    <SolidColorBrush x:Key="RedDarkerBrush" Color="{StaticResource RedDarker}"/>
     <SolidColorBrush x:Key="ShakoBrush" Color="{StaticResource SHAKO}"/>
     <Color x:Key="GOLD">#998363</Color>
     <Color x:Key="GOLD_LIGHTER">#b39a74</Color>

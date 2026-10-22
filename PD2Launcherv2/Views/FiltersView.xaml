@@ -7,6 +7,7 @@
       xmlns:converters="clr-namespace:PD2Launcherv2.Converters"
       xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
       Width="750" Height="550"
+      Style="{StaticResource PixelPerfectFrameworkElement}"
       mc:Ignorable="d" 
       Title="FiltersView"
       Loaded="FiltersView_Loaded"
@@ -17,6 +18,12 @@
         <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
         <converters:NullIfWhiteSpaceToNullConverter
             x:Key="NullIfWhiteSpaceToNullConverter"/>
+
+        <ResourceDictionary x:Key="ResourceDictionary">
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/Resources/Styles/ControlStyles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
     </Page.Resources>
 
     <Grid>
@@ -24,18 +31,17 @@
 
         <Button x:Name="CloseButton" Style="{StaticResource CloseButtonStyle}" FontFamily="{StaticResource BlizzHeavy}" Command="{Binding CloseCommand}" 
             FontSize="25" Content="X" />
-        <TextBlock x:Name="Filter" Text="Filters" FontSize="25" 
-                   VerticalAlignment="Top" HorizontalAlignment="Center" Margin="0,20,0,0"
-                   Foreground="{StaticResource GoldBrush}" FontFamily="{StaticResource BlizzHeavy}">
-        </TextBlock>
-        <Button Content="Help"
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,20,0,0" VerticalAlignment="Top">
+            <TextBlock x:Name="Filter" Text="Filters" FontSize="25"
+                   Foreground="{StaticResource GoldBrush}" FontFamily="{StaticResource BlizzHeavy}"/>
+            <Button Content="Help"
                 Style="{StaticResource CustomColorChangeButton}"
                 Command="{Binding OpenHelpPageCommand}"
                 FontFamily="{StaticResource BlizzMedium}"
                 FocusVisualStyle="{x:Null}"
                 FontSize="12"
-                HorizontalAlignment="Center" VerticalAlignment="Top"
-                Margin="180,30,0,0"/>
+                Margin="10,0,0,0"/>
+        </StackPanel>
 
         <!-- Author List-->
         <StackPanel HorizontalAlignment="Left" VerticalAlignment="Top" Margin="20,70,0,0">
@@ -88,7 +94,7 @@
             </ListBox>
         </StackPanel>
 
-        <StackPanel HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,35,0">
+        <StackPanel HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,25,0">
             <Button Content="Save Filter"
                     Command="{Binding SaveFilterCommand}"
                     FontFamily="{StaticResource BlizzMedium}"
@@ -170,12 +176,12 @@
             <Image Source="pack://application:,,,/Resources/Images/bg_plain.jpg" Stretch="Fill" Panel.ZIndex="1"/>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,10,0,0" Panel.ZIndex="3">
                 <TextBlock Text="FilterBird" FontSize="24" FontFamily="{StaticResource BlizzHeavy}" 
-                   Foreground="{StaticResource GoldBrush}" HorizontalAlignment="Center" VerticalAlignment="Top"/>
+                   Foreground="{StaticResource GoldBrush}"/>
                 <Button Content="info"
                     Style="{StaticResource CustomColorChangeButton}"
                     Command="{Binding FilterPreviewICommand}"
                     FontFamily="{StaticResource BlizzMedium}"
-                    FocusVisualStyle="{x:Null}" Margin="10,5,0,0" FontSize="10" Panel.ZIndex="3"/>
+                    FocusVisualStyle="{x:Null}" Margin="10,0,0,0" FontSize="10" Panel.ZIndex="3"/>
             </StackPanel>
 
             <wv2:WebView2 x:Name="FilterWebView2" 

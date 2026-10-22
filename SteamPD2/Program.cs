@@ -36,8 +36,8 @@ namespace SteamPD2
             var filterHelpers = new FilterHelpers(new HttpClient(), localStorage);
             var launchGameHelpers = new LaunchGameHelpers();
 
-            var launcherArgs = localStorage.LoadSection<LauncherArgs>(StorageKey.LauncherArgs);
-            if (launcherArgs?.disableAutoUpdate == true)
+            var launcherOptions = localStorage.LoadSection<LauncherOptions>(StorageKey.LauncherOptions);
+            if (launcherOptions?.DisableAutoUpdate == true)
             {
                 Log("disableAutoUpdate is enabled. Skipping all update checks.");
                 launchGameHelpers.LaunchGame(localStorage);
